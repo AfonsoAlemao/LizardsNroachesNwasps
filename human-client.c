@@ -3,26 +3,20 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>  
-#include <ctype.h> 
+#include <fcntl.h> 
+#include <ctype.h>
 #include <stdlib.h>
-#include <zmq.h> 
+#include <zmq.h>
 #include <string.h>
 #include <stdio.h>
-#include <assert.h> 
-
+#include <assert.h>
  
-
-int main()
-{
-
-
+int main() {
     void *context = zmq_ctx_new ();
     void *requester = zmq_socket (context, ZMQ_REQ);
     assert(requester != NULL);
     int rc = zmq_connect (requester, "tcp://127.0.0.1:5560");
     assert(rc == 0);
-
 
     //TODO_5
     // read the character from the user
@@ -45,10 +39,10 @@ int main()
     zmq_recv (requester, &ok, sizeof(int), 0);
 
 
-	initscr();			/* Start curses mode 		*/
-	cbreak();				/* Line buffering disabled	*/
-	keypad(stdscr, TRUE);		/* We get F1, F2 etc..		*/
-	noecho();			/* Don't echo() while we do getch */
+	initscr();			    /* Start curses mode */
+	cbreak();				/* Line buffering disabled */
+	keypad(stdscr, TRUE);	/* We get F1, F2 etc.. */
+	noecho();			    /* Don't echo() while we do getch */
 
     int n = 0;
 
@@ -104,7 +98,7 @@ int main()
     }while(key != 27);
     
     
-  	endwin();			/* End curses mode		  */
+  	endwin();			    /* End curses mode */
     zmq_close (requester);
     zmq_ctx_destroy (context);
 

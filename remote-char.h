@@ -1,5 +1,8 @@
 
-typedef enum direction_t {UP, DOWN, LEFT, RIGHT} direction_t;
+#include <stdint.h>
+#include <time.h>
+
+typedef enum direction_t {UP, DOWN, LEFT, RIGHT, NONE} direction_t;
 
 typedef struct remote_char_t
 {   
@@ -18,6 +21,13 @@ typedef struct ch_info_t
     int ch;
     int pos_x, pos_y;
 } ch_info_t;
+
+typedef struct pos_roaches
+{
+    uint32_t id;
+    ch_info_t char_data[10];
+    int nChars; 
+} pos_roaches;
 
 
 typedef struct remote_display_msg

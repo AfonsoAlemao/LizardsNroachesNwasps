@@ -2,19 +2,20 @@ CC = gcc
 CFLAGS = -Wall -g
 LIBS = -lzmq -lncurses
 
-all: server human_client machine_client remote-display-client
+# Define .PHONY to specify that 'all' and 'clean' are not files.
+.PHONY: all clean
 
-server: server-exercise-3.c zhelpers.h remote-char.h
-	$(CC) $(CFLAGS) -o server server-exercise-3.c $(LIBS)
+# 'all' is the default target. It depends on the binaries that need to be built.
+all: lizardsNroaches_server roaches_client
 
-human_client: human-client.c zhelpers.h remote-char.h
-	$(CC) $(CFLAGS) -o human_client human-client.c $(LIBS)
+# Rule for building lizardsNroaches_server
+lizardsNroaches_server: lizardsNroaches-server.c zhelpers.h remote-char.h
+	$(CC) $(CFLAGS) -o lizardsNroaches_server lizardsNroaches-server.c $(LIBS)
 
-machine_client: machine-client.c zhelpers.h remote-char.h
-	$(CC) $(CFLAGS) -o machine_client machine-client.c $(LIBS)
+# Rule for building roaches_client
+roaches_client: roaches-client.c zhelpers.h remote-char.h
+	$(CC) $(CFLAGS) -o roaches_client roaches-client.c $(LIBS)
 
-remote-display-client: remote-display-client.c zhelpers.h remote-char.h
-	$(CC) $(CFLAGS) -o remote-display-client remote-display-client.c $(LIBS)
-
+# Rule for cleaning up the build artifacts
 clean:
-	rm -f server human_client machine_client remote-display-client
+	rm -f lizardsNroaches_server roaches_client

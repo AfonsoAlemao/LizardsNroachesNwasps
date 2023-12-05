@@ -41,15 +41,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char full_address[256];
-    char id_string[100];
+    char full_address[60];
+    char id_string[60];
 
     snprintf(id_string, sizeof(id_string), "%s:%s", server_address, argv[2]);
-    uint32_t id_int = simple_hash(id_string);
+    uint32_t id_int = hash_function(id_string);
 
     printf("Unique ID: %u\n", id_int);
-
-    
 
     sprintf(full_address, "tcp://%s:%d", server_address, port);
 
@@ -94,45 +92,56 @@ int main(int argc, char *argv[]) {
     }
 
     int ok = 0;
+
+    size_t send, recv;        
+
+    // connection message
+    send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
+    assert(send != -1);
+    recv = zmq_recv (requester, &ok, sizeof(int), 0);
+    assert(recv != -1);
     
-    zmq_send (requester, &m, sizeof(remote_char_t), 0);
-    zmq_recv (requester, &ok, sizeof(int), 0);
+    /* for example when number of roaches in the 
+    server does not allow the addition of these number of roaches */
+    
+    if(ok == 0) { 
+        printf("The request was not fullfilled\n");
+        exit(0);
+    }
+
+    ok = 0;
 
     int sleep_delay;
-    direction_t direction;
-    int n = 0;
-    
-    while (1)
+    int kk = 0;
+
+    while (1) 
     {
-        n++;
         sleep_delay = random()%700000;
         usleep(sleep_delay);
-        direction = random()%4;
-        switch (direction)
-        {
-        case LEFT:
-           printf("%d Going Left   \n", n);
-            break;
-        case RIGHT:
-            printf("%d Going Right   \n", n);
-           break;
-        case DOWN:
-            printf("%d Going Down   \n", n);
-            break;
-        case UP:
-            printf("%d Going Up    \n", n);
-            break;
+        
+        for (kk = 0; kk < nRoaches; kk++){
+          m.direction[kk] = random()%5;  
         }
 
-        //TODO_9
-        // prepare the movement message
-        m.direction = direction;
         m.msg_type = 1;
 
         //TODO_10
         //send the movement message
-        zmq_send (requester, &m, sizeof(remote_char_t), 0);
-        zmq_recv (requester, &ok, sizeof(int), 0);
+        send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
+        assert(send != -1);
+        recv = zmq_recv (requester, &ok, sizeof(int), 0);
+        assert(recv != -1);
+    
+        /* for example when number of roaches in the 
+        server does not allow the addition of these number of roaches */
+
+        if(ok == 0) { 
+            printf("The request was not fullfilled\n");
+            exit(0);
+        }
+
+        ok = 0;
+
     }
 
     zmq_close (requester);

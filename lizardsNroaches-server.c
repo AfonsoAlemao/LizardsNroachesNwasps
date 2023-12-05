@@ -1,5 +1,4 @@
 #include <ncurses.h>
-#include "remote-char.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -10,11 +9,21 @@
 #include <stdio.h>
 #include <assert.h> 
 #include <math.h>
+
 #include "lists.h"
+#include "remote-char.h"
 
 #define WINDOW_SIZE 20 
 #define MAX_LIZARDS 26 
 #define TAIL_SIZE 5
+
+void new_position(int* x, int *y, direction_t direction);
+int find_ch_info(ch_info_t char_data[], int n_char, int ch);
+void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***field, int index_client, 
+int index_roaches, int element_type, pos_lizards *client_lizards, pos_roaches *client_roaches);
+void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int index_client, list_element ***field, pos_lizards *client_lizards, pos_roaches *client_roaches);
+bool check_head_in_square(list_element *head);
+char check_prioritary_element(list_element *head, pos_lizards *client_lizards, pos_roaches *client_roaches);
 
 void new_position(int* x, int *y, direction_t direction){
     switch (direction) {
@@ -55,7 +64,7 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
 }
 
 void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***field, int index_client, 
-        int index_roaches, int element_type, pos_lizards *client_lizards, pos_roaches *client_roaches) {
+                    int index_roaches, int element_type, pos_lizards *client_lizards, pos_roaches *client_roaches) {
     
     list_element *head;
     head = field[x][y];
@@ -67,7 +76,7 @@ void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***fie
 
     if (ch == ' ') {
         // delete from list position xy in field
-        head = deletelist_element(head, new_data);
+        head = deletelist_element(&head, new_data);
         field[x][y] = head;
 
         // verificar se nesta posiçao existem mais elementos? se existirem display = True
@@ -78,7 +87,7 @@ void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***fie
     else {
         // add to list position xy in field
         
-        head = insertBegin(head, new_data);
+        head = insertBegin(&head, new_data);
         field[x][y] = head;
     }
 
@@ -91,15 +100,12 @@ void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***fie
     //  verifiar se coincide com:
     //      - uma head de um lizard: repartir os pontos de ambos os lizards
 
-
     wmove(my_win, x, y);
     waddch(my_win, ch | A_BOLD);
     wrefresh(my_win);
-    
-
 }
 
-void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int index_client, list_element *field, pos_lizards *client_lizards, pos_roaches *client_roaches) {
+void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int index_client, list_element ***field, pos_lizards *client_lizards, pos_roaches *client_roaches) {
     char display;
     if (delete == TRUE) {
         display = ' ';
@@ -111,7 +117,6 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
     int index_roaches = -1;  
     int element_type = 0;
     
-    
     switch (direction)
     {
     case LEFT:
@@ -122,6 +127,7 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
             }
         }
         break;
+
     case RIGHT:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (y - kk > 1) {
@@ -129,8 +135,8 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
                 index_roaches, element_type, client_lizards, client_roaches);
             }
         }
-        
         break;
+
     case DOWN:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (x - kk > 1) {
@@ -138,8 +144,8 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
                 index_roaches, element_type, client_lizards, client_roaches);
             }
         }
-        
         break;
+
     case UP:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (x + kk < WINDOW_SIZE - 1) {
@@ -148,6 +154,7 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
             }
         }
         break;
+        
     default:
         break;
     }
@@ -192,11 +199,50 @@ char check_prioritary_element(list_element *head, pos_lizards *client_lizards, p
     return winner;
 }
 
+void ***allocate3DArray(int size, int elementSize) {
+    void ***table = (void ***)malloc(size * sizeof(void **));
+    if (table == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return NULL;
+    }
+
+    for (int i = 0; i < size; i++) {
+        table[i] = (void **)malloc(size * sizeof(void *));
+        if (table[i] == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            for (int k = 0; k < i; k++) {
+                free(table[k]);
+            }
+            free(table);
+            return NULL;
+        }
+
+        for (int j = 0; j < size; j++) {
+            table[i][j] = malloc(elementSize); // Allocate memory for the element
+            if (table[i][j] == NULL) {
+                fprintf(stderr, "Memory allocation failed\n");
+                for (int l = 0; l < j; l++) {
+                    free(table[i][l]);
+                }
+                for (int k = 0; k <= i; k++) {
+                    free(table[k]);
+                }
+                free(table);
+                return NULL;
+            }
+            // Here you would initialize the memory if necessary.
+        }
+    }
+    return table;
+}
+
 
 int main() {
     remote_char_t m;
 
-    list_element *field[WINDOW_SIZE - 2][WINDOW_SIZE - 2];
+    list_element ***field;
+
+    field = (list_element ***) allocate3DArray(WINDOW_SIZE - 2);
 
     void *context = zmq_ctx_new ();
     assert(context != NULL);

@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <time.h>
 #include <stdbool.h>
-#include "lists.h"
 
 typedef enum direction_t {UP, DOWN, LEFT, RIGHT, NONE} direction_t;
 
@@ -48,26 +47,3 @@ typedef struct remote_display_msg
 }remote_display_msg;
 
 
-typedef struct square 
-{
-    int index_client;  // index in table of clients with roaches or in table of lizards 
-    int index_roaches;  // index in table of the client of the roaches. Only used for roaches
-    int element_type;   // 0-tail of liz, 1-liz head, 2-roach
-
-    /* Examples:
-    lizard stored in lizardtable[0]: 
-        index_client=0
-        index_roaches=don't care
-        element_type=1
-
-    tail of lizard stored in lizardtable[0]: 
-        index_client=0
-        index_roaches=don't care
-        element_type=0
-
-    roach stored in roachtable[0][3]: 
-        index_client=0
-        index_roaches=3
-        element_type=2
-    */
-}square;

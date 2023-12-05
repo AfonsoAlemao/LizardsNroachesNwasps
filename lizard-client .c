@@ -67,13 +67,17 @@ int main(int argc, char *argv[]) {
 
     send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
     assert(send != -1);
-    recv = zmq_recv (requester, &char_ok, sizeof(char), 0);
+    recv = zmq_recv (requester, &ok, sizeof(char), 0);
     assert(recv != -1);
 
+    char_ok = (char) ok;
+    
     if(char_ok == '?') {
         printf("Connection failed\n");
         exit(0);
     }
+
+    ok = 0;
     m.ch[0] = char_ok;
 
 
@@ -132,15 +136,22 @@ int main(int argc, char *argv[]) {
         //TODO_10
         //send the movement message
         if(disconnect == 1) {
-            m.msg_type = 5;
+            m.msg_type = 4;
         }
         if (key != 'x'){
             send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
             assert(send != -1);
-            recv = zmq_recv (requester, &char_ok, sizeof(char), 0);
+            recv = zmq_recv (requester, &ok, sizeof(char), 0);
             assert(recv != -1);
+
+            if(ok == 0) {
+                printf("The request was not fullfilled\n");
+                exit(0);
+            }
+
+            ok = 0;
         }
-        
+
         refresh();			/* Print it on to the real screen */
     }while(key != 27);
     

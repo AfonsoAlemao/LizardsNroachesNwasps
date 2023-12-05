@@ -29,6 +29,12 @@ typedef struct pos_roaches
     int nChars; 
 } pos_roaches;
 
+typedef struct pos_lizards
+{
+    uint32_t id;
+    ch_info_t char_data; //saves the head position
+} pos_lizards;
+
 
 typedef struct remote_display_msg
 {   

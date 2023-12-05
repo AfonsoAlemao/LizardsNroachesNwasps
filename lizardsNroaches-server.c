@@ -12,7 +12,8 @@
 #include <assert.h> 
 #include <math.h>
 
-#define WINDOW_SIZE 5 
+#define WINDOW_SIZE 20 
+#define MAX_LIZARDS 26 
 
 void new_position(int* x, int *y, direction_t direction){
     switch (direction)
@@ -78,13 +79,16 @@ int main()
     int ch;
     pos_roaches *client_roaches;
 
+    int total_lizards = 0; 
+
+    pos_lizards client_lizards[MAX_LIZARDS];
+
     int max_roaches = floor(((WINDOW_SIZE-2)*(WINDOW_SIZE - 2))/3);
 
     //in worst case scenario each client has one roach and there are (WINDOW_SIZE*WINDOW_SIZE)/3 roaches
     client_roaches = (pos_roaches*) calloc(max_roaches, sizeof(pos_roaches));
 
-    int pos_x_roaches;
-    int pos_y_roaches;
+    int pos_x_roaches, pos_x_lizards, pos_y_roaches, pos_y_lizards;
 
     int ok = 1;
 
@@ -108,6 +112,14 @@ int main()
             assert(send != -1);
             ok = 1;
             continue;
+        } else if(m.msg_type == 2) {
+            if(total_lizards + 1 > MAX_LIZARDS) {
+                ok = (int) '?'; //in case the pool is full of lizards
+            }
+            ok = (int) 'a' + total_lizards;
+            send = zmq_send (responder, &ok, sizeof(int), 0);
+            assert(send != -1);
+            ok = 1;
         } else {
             send = zmq_send (responder, &ok, sizeof(int), 0);
             assert(send != -1);
@@ -142,8 +154,7 @@ int main()
 
             total_roaches += m.nChars;
 
-        }
-        if(m.msg_type == 1){
+        } else if(m.msg_type == 1){
             uint32_t index_client_roaches_id = 0;
 
             for(int jjj; jjj < n_clients_roaches;jjj++) {
@@ -172,6 +183,53 @@ int main()
                 waddch(my_win,ch| A_BOLD);
                 wrefresh(my_win);	
             }
+                
+        } else if(m.msg_type == 2){
+            
+            client_lizards[total_lizards].id = m.id;
+
+            client_lizards[total_lizards].char_data.ch = m.ch[0]; 
+
+            client_lizards[total_lizards].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
+            client_lizards[total_lizards].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
+
+            pos_x_lizards = client_lizards[total_lizards].char_data.pos_x;
+            pos_y_lizards = client_lizards[total_lizards].char_data.pos_y;
+            ch = client_lizards[total_lizards].char_data.ch;
+
+            /* draw mark on new position */
+            wmove(my_win, pos_x_lizards, pos_y_lizards);
+            waddch(my_win,ch| A_BOLD);
+            wrefresh(my_win);
+
+            total_lizards++;
+
+        } else if(m.msg_type == 3){
+            uint32_t index_client_lizards_id = 0;
+
+            for(int jjj; jjj < total_lizards;jjj++) {
+                if(client_lizards[jjj].id == m.id) {
+                    index_client_lizards_id = jjj;
+                    break;
+                }
+            }
+
+            pos_x_roaches = client_lizards[index_client_lizards_id].char_data.pos_x;
+            pos_y_roaches = client_lizards[index_client_lizards_id].char_data.pos_y;
+            ch = client_lizards[index_client_lizards_id].char_data.ch;
+            /*deletes old place */
+            wmove(my_win, pos_x_lizards, pos_y_lizards);
+            waddch(my_win,' ');
+
+            /* calculates new mark position */
+            new_position(&pos_x_lizards, &pos_y_lizards, m.direction[0]);
+            client_lizards[index_client_lizards_id].char_data.pos_x = pos_x_lizards;
+            client_lizards[index_client_lizards_id].char_data.pos_y = pos_y_lizards;
+
+            /* draw mark on new position */
+            wmove(my_win, pos_x_lizards, pos_y_lizards);
+            waddch(my_win,ch| A_BOLD);
+            wrefresh(my_win);	
                 
         }
         	

@@ -56,7 +56,6 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
 
 int main()
 {	
-       
     remote_char_t m;
 
     void *context = zmq_ctx_new ();
@@ -116,7 +115,6 @@ int main()
                 ok = (int) '?'; //in case the pool is full of lizards
             } else {
                 ok = (int) 'a' + total_lizards;
-                client_lizards[total_lizards].char_data.ch = (char) ok; 
             }
             
             send = zmq_send (responder, &ok, sizeof(int), 0);
@@ -159,7 +157,7 @@ int main()
         } else if(m.msg_type == 1){
             uint32_t index_client_roaches_id = 0;
 
-            for(int jjj; jjj < n_clients_roaches;jjj++) {
+            for(int jjj = 0; jjj < n_clients_roaches;jjj++) {
                 if(client_roaches[jjj].id == m.id) {
                     index_client_roaches_id = jjj;
                     break;
@@ -192,6 +190,7 @@ int main()
 
             client_lizards[total_lizards].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
             client_lizards[total_lizards].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
+            client_lizards[total_lizards].char_data.ch = (char) ((int) 'a' + total_lizards);
 
             pos_x_lizards = client_lizards[total_lizards].char_data.pos_x;
             pos_y_lizards = client_lizards[total_lizards].char_data.pos_y;
@@ -207,15 +206,15 @@ int main()
         } else if(m.msg_type == 3){
             uint32_t index_client_lizards_id = 0;
 
-            for(int jjj; jjj < total_lizards;jjj++) {
+            for(int jjj = 0; jjj < total_lizards;jjj++) {
                 if(client_lizards[jjj].id == m.id) {
                     index_client_lizards_id = jjj;
                     break;
                 }
             }
 
-            pos_x_roaches = client_lizards[index_client_lizards_id].char_data.pos_x;
-            pos_y_roaches = client_lizards[index_client_lizards_id].char_data.pos_y;
+            pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
+            pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
             ch = client_lizards[index_client_lizards_id].char_data.ch;
             /*deletes old place */
             wmove(my_win, pos_x_lizards, pos_y_lizards);
@@ -231,6 +230,22 @@ int main()
             waddch(my_win,ch| A_BOLD);
             wrefresh(my_win);	
                 
+        } else if(m.msg_type == 4){
+            uint32_t index_client_lizards_id = 0;
+
+            for(int jjj = 0; jjj < total_lizards;jjj++) {
+                if(client_lizards[jjj].id == m.id) {
+                    index_client_lizards_id = jjj;
+                    break;
+                }
+            }
+
+            pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
+            pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
+            ch = client_lizards[index_client_lizards_id].char_data.ch;
+            /*deletes old place */
+            wmove(my_win, pos_x_lizards, pos_y_lizards);
+            waddch(my_win,' ');
         }
         	
     }

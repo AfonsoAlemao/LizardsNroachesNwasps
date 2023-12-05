@@ -52,16 +52,16 @@ int main(int argc, char *argv[]) {
     void *context = zmq_ctx_new ();
     void *requester = zmq_socket (context, ZMQ_REQ);
     assert(requester != NULL);
-    int rc = zmq_connect (requester, "tcp://127.0.0.1:5560");
+    int rc = zmq_connect (requester, full_address);
     assert(rc == 0);
 
-    // TODO_6
     // send connection message
     remote_char_t m;
     m.msg_type = 2;
     m.nChars = 1;
     int ok = 0;
     char char_ok;
+    m.id = id_int;
 
     size_t send, recv;
 
@@ -77,20 +77,19 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-    mvprintw(0,4,"You are lizard %c ", n);
-
     ok = 0;
     m.ch[0] = char_ok;
-
+    
 
 	initscr();			    /* Start curses mode */
 	cbreak();				/* Line buffering disabled */
 	keypad(stdscr, TRUE);	/* We get F1, F2 etc.. */
 	noecho();			    /* Don't echo() while we do getch */
 
+    mvprintw(2, 0, "You are lizard %c", char_ok);
+    
     int n = 0;
 
-    //TODO_9
     // prepare the movement message
     m.msg_type = 3;
     int disconnect = 0;
@@ -104,30 +103,27 @@ int main(int argc, char *argv[]) {
         {
         case KEY_LEFT:
             mvprintw(0,0,"%d Left arrow is pressed", n);
-            //TODO_9
             // prepare the movement message
-           m.direction[0] = LEFT;
+            m.direction[0] = LEFT;
             break;
         case KEY_RIGHT:
             mvprintw(0,0,"%d Right arrow is pressed", n);
-            //TODO_9
             // prepare the movement message
             m.direction[0] = RIGHT;
             break;
         case KEY_DOWN:
             mvprintw(0,0,"%d Down arrow is pressed", n);
-            //TODO_9
             // prepare the movement message
            m.direction[0] = DOWN;
             break;
         case KEY_UP:
             mvprintw(0,0,"%d :Up arrow is pressed", n);
-            //TODO_9
             // prepare the movement message
             m.direction[0] = UP;
             break;
         case 'q':
         case 'Q':
+            mvprintw(0,0,"Disconect");
             disconnect = 1;
             break;
         default:
@@ -146,8 +142,7 @@ int main(int argc, char *argv[]) {
             recv = zmq_recv (requester, &ok, sizeof(char), 0);
             assert(recv != -1);
 
-            if(ok == 0) {
-                printf("The request was not fullfilled\n");
+            if(ok == 0) { //The request was not fullfilled
                 exit(0);
             }
 
@@ -155,7 +150,7 @@ int main(int argc, char *argv[]) {
         }
 
         refresh();			/* Print it on to the real screen */
-    }while(key != 27);
+    }while(key != 27 && key != 'Q' && key != 'q');
     
     
   	endwin();			    /* End curses mode */

@@ -63,6 +63,8 @@ int main(int argc, char *argv[]) {
     char char_ok;
     m.id = id_int;
 
+    int my_score = 0;
+
     size_t send, recv;
 
     send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
@@ -139,14 +141,15 @@ int main(int argc, char *argv[]) {
         if (key != 'x'){
             send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
             assert(send != -1);
-            recv = zmq_recv (requester, &ok, sizeof(char), 0);
+            recv = zmq_recv (requester, &my_score, sizeof(int), 0);
             assert(recv != -1);
 
-            if(ok == 0) { //The request was not fullfilled
+            if(my_score == -1) { //The request was not fullfilled
                 exit(0);
             }
 
-            ok = 0;
+            mvprintw(4, 0, "Your score is %d", my_score);
+
         }
 
         refresh();			/* Print it on to the real screen */

@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 #include <time.h>
+#include <stdbool.h>
 
 typedef enum direction_t {UP, DOWN, LEFT, RIGHT, NONE} direction_t;
 
@@ -31,8 +32,12 @@ typedef struct pos_roaches
 
 typedef struct pos_lizards
 {
+    int score;
     uint32_t id;
     ch_info_t char_data; //saves the head position
+    direction_t prevdirection;
+    bool valid;
+
 } pos_lizards;
 
 

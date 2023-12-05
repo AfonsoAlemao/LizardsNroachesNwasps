@@ -6,7 +6,7 @@
 // Define a list_element structure
 typedef struct list_element {
     square data;
-    list_element* next;
+    struct list_element* next;
 }list_element;
 
 // Function to create a new list_element
@@ -16,10 +16,10 @@ list_element* createlist_element(square data);
 void insertEnd(list_element** head, square data);
 
 // Function to insert a new list_element at the beginning
-void insertBegin(list_element** head, square data);
+list_element** insertBegin(list_element** head, square data);
 
 // Function to delete a list_element with a given value
-void deletelist_element(list_element** head, square data);
+list_element** deletelist_element(list_element** head, square data);
 
 // Function to push a new list_element onto the stack
 void push(list_element** head, square data);

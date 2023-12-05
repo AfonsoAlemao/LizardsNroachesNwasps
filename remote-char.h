@@ -52,7 +52,7 @@ typedef struct square
 {
     int index_client;  // index in table of clients with roaches or in table of lizards 
     int index_roaches;  // index in table of the client of the roaches. Only used for roaches
-    int element_type;   // 0-tail of lizz, 1-liz head, 2-roach
+    int element_type;   // 0-tail of liz, 1-liz head, 2-roach
 
     /* Examples:
     lizard stored in lizardtable[0]: 

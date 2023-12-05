@@ -27,16 +27,18 @@ void insertEnd(list_element** head, square data) {
 }
 
 // Function to insert a new list_element at the beginning
-void insertBegin(list_element** head, square data) {
+list_element** insertBegin(list_element** head, square data) {
     list_element* newlist_element = createlist_element(data);
     newlist_element->next = *head;
     *head = newlist_element;
+
+    return head;
 }
 
 // Function to delete a list_element with a given value
-void deletelist_element(list_element** head, square data) {
+list_element** deletelist_element(list_element** head, square data) {
     if (*head == NULL) {
-        return;
+        return NULL;
     }
 
     list_element* temp = *head;
@@ -45,7 +47,7 @@ void deletelist_element(list_element** head, square data) {
     if (compare(temp->data, data) == 0) {
         *head = temp->next;
         free(temp);
-        return;
+        return NULL;
     }
 
     while (temp != NULL && compare(temp->data, data) != 0) {
@@ -54,11 +56,13 @@ void deletelist_element(list_element** head, square data) {
     }
 
     if (temp == NULL) {
-        return;
+        return NULL;
     }
 
     prev->next = temp->next;
     free(temp);
+
+    return head;
 }
 
 // Function to push a new list_element onto the stack

@@ -166,7 +166,7 @@ int main()
             continue;
         } else if(m.msg_type == 2) {
             if(total_lizards + 1 > MAX_LIZARDS) {
-                ok = (int) '?'; //in case the pool is full of lizards
+                ok = (int) '?'; // in case the pool is full of lizards
             } else {
                 ok = (int) 'a' + total_lizards;
             }
@@ -192,7 +192,7 @@ int main()
 
 
                 client_roaches[n_clients_roaches].char_data[i].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
-                client_roaches[n_clients_roaches].char_data[i].pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
+                client_roaches[n_clients_roaches].char_data[i].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
 
                 pos_x_roaches = client_roaches[n_clients_roaches].char_data[i].pos_x;
                 pos_y_roaches = client_roaches[n_clients_roaches].char_data[i].pos_y;
@@ -232,7 +232,7 @@ int main()
                 /* draw mark on new position */
                 display_in_field(my_win, ch, pos_x_roaches, pos_y_roaches);
             }
-                
+
         } else if(m.msg_type == 2){
             // TODO: em vez de acrescentar na posiçao (total_lizards), acrescentar na primeira posiçao com .valid=False
             client_lizards[total_lizards].id = m.id;
@@ -272,14 +272,12 @@ int main()
             pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
             pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
             ch = client_lizards[index_client_lizards_id].char_data.ch;
-            
 
             // delete old tail
             tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, TRUE, my_win);
 
             /*deletes old place */
             display_in_field(my_win, ' ', pos_x_lizards, pos_y_lizards);
-
 
             /* calculates new mark position */
             new_position(&pos_x_lizards, &pos_y_lizards, m.direction[0]);
@@ -309,14 +307,18 @@ int main()
             pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
             pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
             ch = client_lizards[index_client_lizards_id].char_data.ch;
-            /*deletes old place */
+
+            /* delete old tail */
+            tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, TRUE, my_win);
+            /* deletes old place */
             display_in_field(my_win, ' ', pos_x_lizards, pos_y_lizards);
 
             client_lizards[total_lizards].valid = FALSE;
         }
         	
     }
-  	endwin();			/* End curses mode		  */
+    /* End curses mode */
+  	endwin();
     zmq_close (responder);
     zmq_ctx_destroy (context);
     free(client_roaches);

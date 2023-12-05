@@ -55,6 +55,59 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
     return -1;
 }
 
+void display_in_field(WINDOW *my_win, char ch, int x, int y) {
+    wmove(my_win, x, y);
+    waddch(my_win, ch | A_BOLD);
+    wrefresh(my_win);
+}
+
+void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win) {
+    char display;
+    if (delete == TRUE) {
+        display = ' ';
+    }
+    else {
+        display = '.';
+    }
+    
+    
+    switch (direction)
+    {
+    case LEFT:
+        for(int kk = 1; kk <= TAIL_SIZE; kk++) {
+            if (y + kk < WINDOW_SIZE - 1) {
+                display_in_field(my_win, display, x, y + kk);
+            }
+        }
+        break;
+    case RIGHT:
+        for(int kk = 1; kk <= TAIL_SIZE; kk++) {
+            if (y - kk > 1) {
+                display_in_field(my_win, display, x, y - kk);
+            }
+        }
+        
+        break;
+    case DOWN:
+        for(int kk = 1; kk <= TAIL_SIZE; kk++) {
+            if (x - kk > 1) {
+                display_in_field(my_win, display, x - kk, y);
+            }
+        }
+        
+        break;
+    case UP:
+        for(int kk = 1; kk <= TAIL_SIZE; kk++) {
+            if (x + kk < WINDOW_SIZE - 1) {
+                display_in_field(my_win, display, x + kk, y);
+            }
+        }
+        break;
+    default:
+        break;
+    }
+}
+
 int main()
 {	
     remote_char_t m;
@@ -146,9 +199,7 @@ int main()
                 ch = client_roaches[n_clients_roaches].char_data[i].ch;
 
                 /* draw mark on new position */
-                wmove(my_win, pos_x_roaches, pos_y_roaches);
-                waddch(my_win,ch| A_BOLD);
-                wrefresh(my_win);
+                display_in_field(my_win, ch, pos_x_roaches, pos_y_roaches);
             }
 
             n_clients_roaches++;
@@ -171,8 +222,7 @@ int main()
                 pos_y_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_y;
                 ch = client_roaches[index_client_roaches_id].char_data[i].ch;
                 /*deletes old place */
-                wmove(my_win, pos_x_roaches, pos_y_roaches);
-                waddch(my_win,' ');
+                display_in_field(my_win, ' ', pos_x_roaches, pos_y_roaches);
 
                 /* calculates new mark position */
                 new_position(&pos_x_roaches, &pos_y_roaches, m.direction[i]);
@@ -180,9 +230,7 @@ int main()
                 client_roaches[index_client_roaches_id].char_data[i].pos_y = pos_y_roaches;
 
                 /* draw mark on new position */
-                wmove(my_win, pos_x_roaches, pos_y_roaches);
-                waddch(my_win,ch| A_BOLD);
-                wrefresh(my_win);	
+                display_in_field(my_win, ch, pos_x_roaches, pos_y_roaches);
             }
                 
         } else if(m.msg_type == 2){
@@ -200,59 +248,14 @@ int main()
             ch = client_lizards[total_lizards].char_data.ch;
 
             
-
             m.direction[0] = rand() % 4;
             
-            switch (m.direction[0])
-            {
-            case LEFT:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_x_lizards + kk < WINDOW_SIZE - 1) {
-                        wmove(my_win, pos_x_lizards + kk, pos_y_lizards);
-                        waddch(my_win,'.'| A_BOLD);
-                        wrefresh(my_win);
-                    }
-                }
-                break;
-            case RIGHT:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_x_lizards - kk > 1) {
-                        wmove(my_win, pos_x_lizards - kk, pos_y_lizards);
-                        waddch(my_win,'.'| A_BOLD);
-                        wrefresh(my_win);
-                    }
-                }
-                
-                break;
-            case DOWN:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_y_lizards - kk > 1) {
-                        wmove(my_win, pos_x_lizards, pos_y_lizards - kk);
-                        waddch(my_win,'.'| A_BOLD);
-                        wrefresh(my_win);
-                    }
-                }
-                
-                break;
-            case UP:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_y_lizards + kk < WINDOW_SIZE - 1) {
-                        wmove(my_win, pos_x_lizards, pos_y_lizards + kk);
-                        waddch(my_win,'.'| A_BOLD);
-                        wrefresh(my_win);
-                    }
-                }
-                break;
-            default:
-                break;
-            }
+            tail(m.direction[0], pos_x_lizards, pos_y_lizards, FALSE, my_win);
 
             client_lizards[total_lizards].prevdirection = m.direction[0];
 
             /* draw mark on new position */
-            wmove(my_win, pos_x_lizards, pos_y_lizards);
-            waddch(my_win,ch| A_BOLD);
-            wrefresh(my_win);
+            display_in_field(my_win, ch, pos_x_lizards, pos_y_lizards);
 
             total_lizards++;
 
@@ -272,55 +275,10 @@ int main()
             
 
             // delete old tail
-
-            switch (client_lizards[index_client_lizards_id].prevdirection)
-            {
-            case LEFT:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_y_lizards + kk < WINDOW_SIZE - 1) {
-                        wmove(my_win, pos_x_lizards, pos_y_lizards + kk);
-                        waddch(my_win,' ');
-                        wrefresh(my_win);
-                    }
-                }
-                break;
-            case RIGHT:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_y_lizards - kk > 1) {
-                        wmove(my_win, pos_x_lizards, pos_y_lizards - kk);
-                        waddch(my_win,' ');
-                        wrefresh(my_win);
-                    }
-                }
-                
-                break;
-            case DOWN:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_x_lizards - kk > 1) {
-                        wmove(my_win, pos_x_lizards - kk, pos_y_lizards);
-                        waddch(my_win,' ');
-                        wrefresh(my_win);
-                    }
-                }
-                
-                break;
-            case UP:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_x_lizards + kk < WINDOW_SIZE - 1) {
-                        wmove(my_win, pos_x_lizards + kk, pos_y_lizards);
-                        waddch(my_win,' ');
-                        wrefresh(my_win);
-                    }
-                }
-                break;
-            default:
-                break;
-            }
+            tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, TRUE, my_win);
 
             /*deletes old place */
-            wmove(my_win, pos_x_lizards, pos_y_lizards);
-            waddch(my_win,' ');
-            wrefresh(my_win);
+            display_in_field(my_win, ' ', pos_x_lizards, pos_y_lizards);
 
 
             /* calculates new mark position */
@@ -329,58 +287,12 @@ int main()
             client_lizards[index_client_lizards_id].char_data.pos_y = pos_y_lizards;
 
             /* draw mark on new position */
-            wmove(my_win, pos_x_lizards, pos_y_lizards);
-            waddch(my_win,ch| A_BOLD);
-            wrefresh(my_win);	
+            display_in_field(my_win, ch, pos_x_lizards, pos_y_lizards);
 
             send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(int), 0);
             assert(send != -1);
 
-            
-
-            switch (m.direction[0])
-            {
-            case LEFT:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_y_lizards + kk < WINDOW_SIZE - 1) {
-                        wmove(my_win, pos_x_lizards, pos_y_lizards + kk);
-                        waddch(my_win,'.'| A_BOLD);
-                        wrefresh(my_win);
-                    }
-                }
-                break;
-            case RIGHT:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_y_lizards - kk > 1) {
-                        wmove(my_win, pos_x_lizards, pos_y_lizards - kk);
-                        waddch(my_win,'.'| A_BOLD);
-                        wrefresh(my_win);
-                    }
-                }
-                
-                break;
-            case DOWN:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_x_lizards - kk > 1) {
-                        wmove(my_win, pos_x_lizards - kk, pos_y_lizards);
-                        waddch(my_win,'.'| A_BOLD);
-                        wrefresh(my_win);
-                    }
-                }
-                
-                break;
-            case UP:
-                for(int kk = 1; kk <= TAIL_SIZE; kk++) {
-                    if (pos_x_lizards + kk < WINDOW_SIZE - 1) {
-                        wmove(my_win, pos_x_lizards + kk, pos_y_lizards);
-                        waddch(my_win,'.'| A_BOLD);
-                        wrefresh(my_win);
-                    }
-                }
-                break;
-            default:
-                break;
-            }
+            tail(m.direction[0], pos_x_lizards, pos_y_lizards, FALSE, my_win);
 
             client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
                 
@@ -398,9 +310,7 @@ int main()
             pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
             ch = client_lizards[index_client_lizards_id].char_data.ch;
             /*deletes old place */
-            wmove(my_win, pos_x_lizards, pos_y_lizards);
-            waddch(my_win,' ');
-            wrefresh(my_win);	
+            display_in_field(my_win, ' ', pos_x_lizards, pos_y_lizards);
 
             client_lizards[total_lizards].valid = FALSE;
         }

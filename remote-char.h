@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 #include <time.h>
 #include <stdbool.h>
@@ -14,8 +13,6 @@ typedef struct remote_char_t
     direction_t direction[10];
     /* data */
 }remote_char_t;
-
-#define FIFO_NAME "/tmp/fifo_snail"
 
 typedef struct ch_info_t
 {

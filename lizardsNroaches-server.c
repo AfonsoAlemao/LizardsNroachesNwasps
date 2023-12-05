@@ -119,8 +119,6 @@ int main()
                 pos_y_roaches = client_roaches[n_clients_roaches].char_data[i].pos_y;
                 ch = client_roaches[n_clients_roaches].char_data[i].ch;
 
-                mvprintw(0,0," %d %d :%c", pos_x_roaches, pos_y_roaches, ch);
-
                 /* draw mark on new position */
                 wmove(my_win, pos_x_roaches, pos_y_roaches);
                 waddch(my_win,ch| A_BOLD);

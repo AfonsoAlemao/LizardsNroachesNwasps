@@ -106,6 +106,7 @@ int main(int argc, char *argv[]) {
     
     if(ok == 0) { 
         printf("The request was not fullfilled\n");
+        free(roaches);
         exit(0);
     }
 
@@ -137,6 +138,7 @@ int main(int argc, char *argv[]) {
 
         if(ok == 0) { 
             printf("The request was not fullfilled\n");
+            free(roaches);
             exit(0);
         }
 
@@ -146,6 +148,7 @@ int main(int argc, char *argv[]) {
 
     zmq_close (requester);
     zmq_ctx_destroy (context);
+    free(roaches);
  
 	return 0;
 }

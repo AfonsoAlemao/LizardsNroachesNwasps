@@ -12,7 +12,7 @@
 #include <assert.h> 
 #include <math.h>
 
-#define WINDOW_SIZE 30 
+#define WINDOW_SIZE 5 
 
 void new_position(int* x, int *y, direction_t direction){
     switch (direction)
@@ -78,8 +78,10 @@ int main()
     int ch;
     pos_roaches *client_roaches;
 
+    int max_roaches = floor(((WINDOW_SIZE-2)*(WINDOW_SIZE - 2))/3);
+
     //in worst case scenario each client has one roach and there are (WINDOW_SIZE*WINDOW_SIZE)/3 roaches
-    client_roaches = (pos_roaches*) calloc(floor((WINDOW_SIZE*WINDOW_SIZE)/3), sizeof(pos_roaches));
+    client_roaches = (pos_roaches*) calloc(max_roaches, sizeof(pos_roaches));
 
     int pos_x_roaches;
     int pos_y_roaches;
@@ -100,8 +102,19 @@ int main()
     {
         recv = zmq_recv (responder, &m, sizeof(remote_char_t), 0);
         assert(recv != -1);
-        send = zmq_send (responder, &ok, sizeof(int), 0);
-        assert(send != -1);
+        if(m.nChars + total_roaches > max_roaches && m.msg_type == 0) {
+            ok = 0;
+            send = zmq_send (responder, &ok, sizeof(int), 0);
+            assert(send != -1);
+            ok = 1;
+            continue;
+        } else {
+            send = zmq_send (responder, &ok, sizeof(int), 0);
+            assert(send != -1);
+        }
+        
+
+        ok = 1;
 
         if(m.msg_type == 0){
 
@@ -166,6 +179,7 @@ int main()
   	endwin();			/* End curses mode		  */
     zmq_close (responder);
     zmq_ctx_destroy (context);
+    free(client_roaches);
 
 	return 0;
 }

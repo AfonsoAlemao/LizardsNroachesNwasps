@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <assert.h> 
 #include <math.h>
+#include "lists.h"
 
 #define WINDOW_SIZE 20 
 #define MAX_LIZARDS 26 
@@ -56,9 +57,29 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
 }
 
 void display_in_field(WINDOW *my_win, char ch, int x, int y) {
+    
+
+    if (ch == ' ') {
+        // delete from list position xy in field
+    }
+    else {
+        // add to list position xy in field
+    }
+
+    // se for um lizard:
+    //  verificar se a tua cabeça coincide com:
+    //      - uma barata (comer barata), ou seja vai aumentar o seu score, e a barata desaparece 5 segundos e reaparece aleatoriamente
+    //      - uma tail: repartir os pontos de ambos os lizards
+
+    // se for uma tail:
+    //  verifiar se coincide com:
+    //      - uma head de um lizard: repartir os pontos de ambos os lizards
+
+
     wmove(my_win, x, y);
     waddch(my_win, ch | A_BOLD);
     wrefresh(my_win);
+
 }
 
 void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win) {
@@ -69,7 +90,6 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win) {
     else {
         display = '.';
     }
-    
     
     switch (direction)
     {
@@ -108,9 +128,24 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win) {
     }
 }
 
-int main()
-{	
+bool check_head_in_square(list_element *head) {
+    list_element *current = head;
+    list_element *nextNode;
+    while (current != NULL) {
+        if (current->data.element_type == 1) { // head of lizard
+            return TRUE;
+        }
+        nextNode = current->next;
+        current = nextNode;
+    }
+    return FALSE;
+}
+
+
+int main() {
     remote_char_t m;
+
+    list_element *field[WINDOW_SIZE-2][WINDOW_SIZE-2];
 
     void *context = zmq_ctx_new ();
     assert(context != NULL);
@@ -136,12 +171,13 @@ int main()
 
     pos_lizards client_lizards[MAX_LIZARDS];
 
-    int max_roaches = floor(((WINDOW_SIZE-2)*(WINDOW_SIZE - 2))/3);
+    int max_roaches = floor(((WINDOW_SIZE - 2)*(WINDOW_SIZE - 2))/3);
 
     //in worst case scenario each client has one roach and there are (WINDOW_SIZE*WINDOW_SIZE)/3 roaches
     client_roaches = (pos_roaches*) calloc(max_roaches, sizeof(pos_roaches));
 
     int pos_x_roaches, pos_x_lizards, pos_y_roaches, pos_y_lizards;
+    int pos_x_roaches_aux, pos_y_roaches_aux, pos_x_lizards_aux, pos_y_lizards_aux;
 
     int ok = 1;
 
@@ -164,7 +200,8 @@ int main()
             assert(send != -1);
             ok = 1;
             continue;
-        } else if(m.msg_type == 2) {
+        }
+        else if(m.msg_type == 2) {
             if(total_lizards + 1 > MAX_LIZARDS) {
                 ok = (int) '?'; // in case the pool is full of lizards
             } else {
@@ -174,7 +211,8 @@ int main()
             send = zmq_send (responder, &ok, sizeof(int), 0);
             assert(send != -1);
             ok = 1;
-        } else if (m.msg_type != 3) {
+        }
+        else if (m.msg_type != 3) {
             send = zmq_send (responder, &ok, sizeof(int), 0);
             assert(send != -1);
         }
@@ -182,7 +220,7 @@ int main()
 
         ok = 1;
 
-        if(m.msg_type == 0){
+        if(m.msg_type == 0) {
 
             client_roaches[n_clients_roaches].id = m.id;
             client_roaches[n_clients_roaches].nChars = m.nChars;
@@ -190,9 +228,17 @@ int main()
             for(i = 0; i < m.nChars; i++) {
                 client_roaches[n_clients_roaches].char_data[i].ch = m.ch[i];
 
+                while (1) {
+                    client_roaches[n_clients_roaches].char_data[i].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
+                    client_roaches[n_clients_roaches].char_data[i].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
 
-                client_roaches[n_clients_roaches].char_data[i].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
-                client_roaches[n_clients_roaches].char_data[i].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
+                    // verify if new position matches the position of anothers' head lizard
+                    if(check_head_in_square(field[client_roaches[n_clients_roaches].char_data[i].pos_x][ 
+                        client_roaches[n_clients_roaches].char_data[i].pos_y]) == FALSE) {
+                        break;
+                    }
+                }
+                
 
                 pos_x_roaches = client_roaches[n_clients_roaches].char_data[i].pos_x;
                 pos_y_roaches = client_roaches[n_clients_roaches].char_data[i].pos_y;
@@ -206,7 +252,8 @@ int main()
 
             total_roaches += m.nChars;
 
-        } else if(m.msg_type == 1){
+        }
+        else if(m.msg_type == 1){
             uint32_t index_client_roaches_id = 0;
 
             for(int jjj = 0; jjj < n_clients_roaches;jjj++) {
@@ -221,26 +268,41 @@ int main()
                 pos_x_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_x;
                 pos_y_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_y;
                 ch = client_roaches[index_client_roaches_id].char_data[i].ch;
-                /*deletes old place */
-                display_in_field(my_win, ' ', pos_x_roaches, pos_y_roaches);
 
-                /* calculates new mark position */
-                new_position(&pos_x_roaches, &pos_y_roaches, m.direction[i]);
-                client_roaches[index_client_roaches_id].char_data[i].pos_x = pos_x_roaches;
-                client_roaches[index_client_roaches_id].char_data[i].pos_y = pos_y_roaches;
+                new_position(&pos_x_roaches_aux, &pos_y_roaches_aux, m.direction[i]);
+                // verify if new position matches the position of anothers' head lizard
+                if(check_head_in_square(field[pos_x_roaches_aux][pos_y_roaches_aux]) == FALSE) {
+                    /* deletes old place */
+                    display_in_field(my_win, ' ', pos_x_roaches, pos_y_roaches);
 
-                /* draw mark on new position */
-                display_in_field(my_win, ch, pos_x_roaches, pos_y_roaches);
+                    /* calculates new mark position */
+                    pos_x_roaches = pos_x_roaches_aux;
+                    pos_y_roaches = pos_y_roaches_aux;
+                    client_roaches[index_client_roaches_id].char_data[i].pos_x = pos_x_roaches;
+                    client_roaches[index_client_roaches_id].char_data[i].pos_y = pos_y_roaches;
+
+                    /* draw mark on new position */
+                    display_in_field(my_win, ch, pos_x_roaches, pos_y_roaches);
+                }
             }
-
-        } else if(m.msg_type == 2){
+        }
+        else if(m.msg_type == 2){
             // TODO: em vez de acrescentar na posiçao (total_lizards), acrescentar na primeira posiçao com .valid=False
             client_lizards[total_lizards].id = m.id;
             client_lizards[total_lizards].score = 0;
             client_lizards[total_lizards].valid = TRUE;
 
-            client_lizards[total_lizards].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
-            client_lizards[total_lizards].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
+            while (1) {
+                client_lizards[total_lizards].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
+                client_lizards[total_lizards].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
+
+                // verify if new position matches the position of anothers' head lizard
+                if(check_head_in_square(field[client_lizards[total_lizards].char_data.pos_x][ 
+                    client_lizards[total_lizards].char_data.pos_y]) == FALSE) {
+                    break;
+                }
+            }
+
             client_lizards[total_lizards].char_data.ch = (char) ((int) 'a' + total_lizards);
 
             pos_x_lizards = client_lizards[total_lizards].char_data.pos_x;
@@ -259,7 +321,8 @@ int main()
 
             total_lizards++;
 
-        } else if(m.msg_type == 3){
+        } 
+        else if(m.msg_type == 3){
             uint32_t index_client_lizards_id = 0;
 
             for(int jjj = 0; jjj < total_lizards;jjj++) {
@@ -273,28 +336,35 @@ int main()
             pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
             ch = client_lizards[index_client_lizards_id].char_data.ch;
 
-            // delete old tail
-            tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, TRUE, my_win);
+            new_position(&pos_x_lizards_aux, &pos_y_lizards_aux, m.direction[0]);
+            // verify if new position matches the position of anothers' head lizard TODO
+            if(check_head_in_square(field[pos_x_lizards_aux][pos_y_lizards_aux]) == FALSE) {
 
-            /*deletes old place */
-            display_in_field(my_win, ' ', pos_x_lizards, pos_y_lizards);
+                // delete old tail
+                tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, TRUE, my_win);
 
-            /* calculates new mark position */
-            new_position(&pos_x_lizards, &pos_y_lizards, m.direction[0]);
-            client_lizards[index_client_lizards_id].char_data.pos_x = pos_x_lizards;
-            client_lizards[index_client_lizards_id].char_data.pos_y = pos_y_lizards;
+                /*deletes old place */
+                display_in_field(my_win, ' ', pos_x_lizards, pos_y_lizards);
 
-            /* draw mark on new position */
-            display_in_field(my_win, ch, pos_x_lizards, pos_y_lizards);
+                /* calculates new mark position */
+                pos_x_lizards_aux = pos_x_lizards;
+                pos_y_lizards_aux = pos_y_lizards;
+                client_lizards[index_client_lizards_id].char_data.pos_x = pos_x_lizards;
+                client_lizards[index_client_lizards_id].char_data.pos_y = pos_y_lizards;
 
-            send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(int), 0);
-            assert(send != -1);
+                /* draw mark on new position */
+                display_in_field(my_win, ch, pos_x_lizards, pos_y_lizards);
 
-            tail(m.direction[0], pos_x_lizards, pos_y_lizards, FALSE, my_win);
+                send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(int), 0);
+                assert(send != -1);
 
-            client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
+                tail(m.direction[0], pos_x_lizards, pos_y_lizards, FALSE, my_win);
+
+                client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
+            }
                 
-        } else if(m.msg_type == 4){
+        }
+        else if(m.msg_type == 4){
             uint32_t index_client_lizards_id = 0;
 
             for(int jjj = 0; jjj < total_lizards;jjj++) {

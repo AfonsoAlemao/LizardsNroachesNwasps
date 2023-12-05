@@ -3,34 +3,34 @@
 
 #include "remote-char.h"
 
-// Define a square structure
-struct square {
-    list_element data;
-    struct square* next;
-};
+// Define a list_element structure
+typedef struct list_element {
+    square data;
+    list_element* next;
+}list_element;
 
-// Function to create a new square
-struct square* createsquare(int data);
+// Function to create a new list_element
+list_element* createlist_element(square data);
 
-// Function to insert a new square at the end
-void insertEnd(struct square** head, int data);
+// Function to insert a new list_element at the end
+void insertEnd(list_element** head, square data);
 
-// Function to insert a new square at the beginning
-void insertBegin(struct square** head, int data);
+// Function to insert a new list_element at the beginning
+void insertBegin(list_element** head, square data);
 
-// Function to delete a square with a given value
-void deletesquare(struct square** head, int data);
+// Function to delete a list_element with a given value
+void deletelist_element(list_element** head, square data);
 
-// Function to push a new square onto the stack
-void push(struct square** head, int data);
+// Function to push a new list_element onto the stack
+void push(list_element** head, square data);
 
-// Function to pop a square from the stack
-void pop(struct square** head);
+// Function to pop a list_element from the stack
+void pop(list_element** head);
 
 // Function to print the linked list
-void printList(struct square* head);
+void printList(list_element* head);
 
 // Function to free the memory allocated for the linked list
-void freeList(struct square* head);
+void freeList(list_element* head);
 
 #endif

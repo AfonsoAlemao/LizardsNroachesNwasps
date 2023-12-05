@@ -2,52 +2,53 @@
 #include <stdlib.h>
 # include "lists.h"
 
-// Function to create a new square
-struct square* createsquare(int data) {
-    struct square* newsquare = (struct square*)malloc(sizeof(struct square));
-    newsquare->data = data;
-    newsquare->next = NULL;
-    return newsquare;
+
+// Function to create a new list_element
+list_element* createlist_element(square data) {
+    list_element* newlist_element = (list_element*)malloc(sizeof(list_element));
+    newlist_element->data = data;
+    newlist_element->next = NULL;
+    return newlist_element;
 }
 
-// Function to insert a new square at the end
-void insertEnd(struct square** head, int data) {
-    struct square* newsquare = createsquare(data);
+// Function to insert a new list_element at the end
+void insertEnd(list_element** head, square data) {
+    list_element* newlist_element = createlist_element(data);
     if (*head == NULL) {
-        *head = newsquare;
+        *head = newlist_element;
         return;
     }
 
-    struct square* temp = *head;
+    list_element* temp = *head;
     while (temp->next != NULL) {
         temp = temp->next;
     }
-    temp->next = newsquare;
+    temp->next = newlist_element;
 }
 
-// Function to insert a new square at the beginning
-void insertBegin(struct square** head, int data) {
-    struct square* newsquare = createsquare(data);
-    newsquare->next = *head;
-    *head = newsquare;
+// Function to insert a new list_element at the beginning
+void insertBegin(list_element** head, square data) {
+    list_element* newlist_element = createlist_element(data);
+    newlist_element->next = *head;
+    *head = newlist_element;
 }
 
-// Function to delete a square with a given value
-void deletesquare(struct square** head, int data) {
+// Function to delete a list_element with a given value
+void deletelist_element(list_element** head, square data) {
     if (*head == NULL) {
         return;
     }
 
-    struct square* temp = *head;
-    struct square* prev = NULL;
+    list_element* temp = *head;
+    list_element* prev = NULL;
 
-    if (temp->data == data) {
+    if (compare(temp->data, data) == 0) {
         *head = temp->next;
         free(temp);
         return;
     }
 
-    while (temp != NULL && temp->data != data) {
+    while (temp != NULL && compare(temp->data, data) != 0) {
         prev = temp;
         temp = temp->next;
     }
@@ -60,25 +61,25 @@ void deletesquare(struct square** head, int data) {
     free(temp);
 }
 
-// Function to push a new square onto the stack
-void push(struct square** head, int data) {
+// Function to push a new list_element onto the stack
+void push(list_element** head, square data) {
     insertBegin(head, data);
 }
 
-// Function to pop a square from the stack
-void pop(struct square** head) {
+// Function to pop a list_element from the stack
+void pop(list_element** head) {
     if (*head == NULL) {
         return;
     }
 
-    struct square* temp = *head;
+    list_element* temp = *head;
     *head = temp->next;
     free(temp);
 }
 
 // Function to print the linked list
-void printList(struct square* head) {
-    struct square* temp = head;
+void printList(list_element* head) {
+    list_element* temp = head;
     while (temp != NULL) {
         printf("%d ", temp->data);
         temp = temp->next;
@@ -87,8 +88,8 @@ void printList(struct square* head) {
 }
 
 // Function to free the memory allocated for the linked list
-void freeList(struct square* head) {
-    struct square* temp;
+void freeList(list_element* head) {
+    list_element* temp;
     while (head != NULL) {
         temp = head;
         head = head->next;

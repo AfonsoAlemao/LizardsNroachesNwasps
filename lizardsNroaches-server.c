@@ -12,7 +12,7 @@
 #include <assert.h> 
 #include <math.h>
 
-#define WINDOW_SIZE 15 
+#define WINDOW_SIZE 30 
 
 void new_position(int* x, int *y, direction_t direction){
     switch (direction)
@@ -62,7 +62,7 @@ int main()
     assert(context != NULL);
     void *responder = zmq_socket (context, ZMQ_REP);
     assert(responder != NULL);
-    int rc = zmq_bind (responder, "tcp://127.0.0.1:5560");
+    int rc = zmq_bind (responder, "tcp://*:5560");
     assert (rc == 0);
 
 	initscr();		    	
@@ -110,12 +110,16 @@ int main()
 
             for(i = 0; i < m.nChars; i++) {
                 client_roaches[n_clients_roaches].char_data[i].ch = m.ch[i];
-                client_roaches[n_clients_roaches].char_data[i].pos_x = rand() % WINDOW_SIZE;
-                client_roaches[n_clients_roaches].char_data[i].pos_y =  rand() % WINDOW_SIZE;
+
+
+                client_roaches[n_clients_roaches].char_data[i].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
+                client_roaches[n_clients_roaches].char_data[i].pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
 
                 pos_x_roaches = client_roaches[n_clients_roaches].char_data[i].pos_x;
                 pos_y_roaches = client_roaches[n_clients_roaches].char_data[i].pos_y;
                 ch = client_roaches[n_clients_roaches].char_data[i].ch;
+
+                mvprintw(0,0," %d %d :%c", pos_x_roaches, pos_y_roaches, ch);
 
                 /* draw mark on new position */
                 wmove(my_win, pos_x_roaches, pos_y_roaches);
@@ -138,7 +142,7 @@ int main()
                 }
             }
 
-            for(i = 0; m.nChars; i++) {
+            for(i = 0; i < m.nChars; i++) {
 
                 pos_x_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_x;
                 pos_y_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_y;

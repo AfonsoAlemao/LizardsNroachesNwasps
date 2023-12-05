@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
 
     while (1) 
     {
-        sleep_delay = random()%700000;
+        sleep_delay = random()%1000000;
         usleep(sleep_delay);
         
         for (kk = 0; kk < nRoaches; kk++){

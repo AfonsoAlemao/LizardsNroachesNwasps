@@ -99,7 +99,6 @@ int main()
     int total_roaches = 0;
 
     int i = 0;
-    direction_t  direction;
     size_t send, recv;
     
     while (1)
@@ -115,8 +114,11 @@ int main()
         } else if(m.msg_type == 2) {
             if(total_lizards + 1 > MAX_LIZARDS) {
                 ok = (int) '?'; //in case the pool is full of lizards
+            } else {
+                ok = (int) 'a' + total_lizards;
+                client_lizards[total_lizards].char_data.ch = (char) ok; 
             }
-            ok = (int) 'a' + total_lizards;
+            
             send = zmq_send (responder, &ok, sizeof(int), 0);
             assert(send != -1);
             ok = 1;
@@ -187,8 +189,6 @@ int main()
         } else if(m.msg_type == 2){
             
             client_lizards[total_lizards].id = m.id;
-
-            client_lizards[total_lizards].char_data.ch = m.ch[0]; 
 
             client_lizards[total_lizards].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
             client_lizards[total_lizards].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;

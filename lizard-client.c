@@ -77,6 +77,8 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
+    mvprintw(0,4,"You are lizard %c ", n);
+
     ok = 0;
     m.ch[0] = char_ok;
 

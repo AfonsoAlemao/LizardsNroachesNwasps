@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-# include "lists.h"
-
+#include "lists.h"
 
 // Function to create a new list_element
 list_element* createlist_element(square data) {
@@ -35,7 +34,15 @@ list_element* insertBegin(list_element** head, square data) {
     return *head;
 }
 
-// Function to delete a list_element with a given value
+int compare(square data1, square data2) {
+    if (data1.element_type != data2.element_type ||
+        data1.index_client != data2.index_client ||
+        data1.index_roaches != data2.index_roaches) {
+        return 1;
+    }
+    return 0;
+}
+
 list_element* deletelist_element(list_element** head, square data) {
     if (*head == NULL) {
         return NULL;
@@ -47,7 +54,7 @@ list_element* deletelist_element(list_element** head, square data) {
     if (compare(temp->data, data) == 0) {
         *head = temp->next;
         free(temp);
-        return NULL;
+        return *head;
     }
 
     while (temp != NULL && compare(temp->data, data) != 0) {
@@ -56,7 +63,7 @@ list_element* deletelist_element(list_element** head, square data) {
     }
 
     if (temp == NULL) {
-        return NULL;
+        return *head;
     }
 
     prev->next = temp->next;
@@ -69,6 +76,7 @@ list_element* deletelist_element(list_element** head, square data) {
 void push(list_element** head, square data) {
     insertBegin(head, data);
 }
+
 
 // Function to pop a list_element from the stack
 void pop(list_element** head) {
@@ -85,7 +93,9 @@ void pop(list_element** head) {
 void printList(list_element* head) {
     list_element* temp = head;
     while (temp != NULL) {
-        printf("%d ", temp->data);
+        printf("Element Type %d ", temp->data.element_type);
+        printf("Index Client %d ", temp->data.index_client);
+        printf("Index Roaches %d ", temp->data.index_roaches);
         temp = temp->next;
     }
     printf("\n");

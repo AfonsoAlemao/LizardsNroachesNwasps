@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
     ok = 0;
     m.ch[0] = char_ok;
     
-
 	initscr();			    /* Start curses mode */
 	cbreak();				/* Line buffering disabled */
 	keypad(stdscr, TRUE);	/* We get F1, F2 etc.. */
@@ -95,8 +94,8 @@ int main(int argc, char *argv[]) {
     // prepare the movement message
     m.msg_type = 3;
     int disconnect = 0;
-    
     int key;
+
     do
     {
     	key = getch();		
@@ -104,28 +103,28 @@ int main(int argc, char *argv[]) {
         switch (key)
         {
         case KEY_LEFT:
-            mvprintw(0,0,"%d Left arrow is pressed", n);
+            mvprintw(0,0,"%d :Left arrow is pressed ", n);
             // prepare the movement message
             m.direction[0] = LEFT;
             break;
         case KEY_RIGHT:
-            mvprintw(0,0,"%d Right arrow is pressed", n);
+            mvprintw(0,0,"%d :Right arrow is pressed", n);
             // prepare the movement message
             m.direction[0] = RIGHT;
             break;
         case KEY_DOWN:
-            mvprintw(0,0,"%d Down arrow is pressed", n);
+            mvprintw(0,0,"%d :Down arrow is pressed ", n);
             // prepare the movement message
            m.direction[0] = DOWN;
             break;
         case KEY_UP:
-            mvprintw(0,0,"%d :Up arrow is pressed", n);
+            mvprintw(0,0,"%d :Up arrow is pressed   ", n);
             // prepare the movement message
             m.direction[0] = UP;
             break;
         case 'q':
         case 'Q':
-            mvprintw(0,0,"Disconect");
+            mvprintw(0,0,"Disconect                  ");
             disconnect = 1;
             break;
         default:

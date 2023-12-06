@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <assert.h> 
 
-
 uint32_t hash_function(const char *str) {
     uint32_t hash = 0;
     while (*str) {
@@ -21,9 +20,12 @@ uint32_t hash_function(const char *str) {
     return hash;
 }
 
-
 int main(int argc, char *argv[]) {
-
+    int nRoaches, sleep_delay;
+    char *roaches;
+    char full_address[60], id_string[60];
+    int ok = 0;
+    size_t send, recv;
 
     // Check if the correct number of arguments is provided
     if (argc != 3) {
@@ -41,9 +43,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char full_address[60];
-    char id_string[60];
-
     snprintf(id_string, sizeof(id_string), "%s:%s", server_address, argv[2]);
     uint32_t id_int = hash_function(id_string);
 
@@ -57,7 +56,6 @@ int main(int argc, char *argv[]) {
     int rc = zmq_connect (requester, full_address);
     assert(rc == 0);
 
-    int nRoaches;
     // Ask the user for the size of the array
     printf("How many roaches (1 to 10)? ");
     scanf("%d", &nRoaches);
@@ -72,12 +70,8 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
 
     // Create a character array of size n
-    char *roaches;
-
     roaches = (char *)calloc(nRoaches, sizeof(char));
     
-    
-    // TODO_6
     // send connection message
     remote_char_t m;
     m.msg_type = 0;
@@ -90,10 +84,6 @@ int main(int argc, char *argv[]) {
         roaches[i] = '0' + randomNum; // Convert number to character
         m.ch[i] = roaches[i];
     }
-
-    int ok = 0;
-
-    size_t send, recv;        
 
     // connection message
     send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
@@ -111,16 +101,13 @@ int main(int argc, char *argv[]) {
     }
 
     ok = 0;
-
-    int sleep_delay;
-    int kk = 0;
-
+    
     while (1) 
     {
         sleep_delay = random()%1000000;
         usleep(sleep_delay);
         
-        for (kk = 0; kk < nRoaches; kk++){
+        for (int kk = 0; kk < nRoaches; kk++){
           m.direction[kk] = random()%5;  
         }
 

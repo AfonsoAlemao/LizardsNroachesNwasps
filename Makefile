@@ -6,20 +6,24 @@ LIBS = -lzmq -lncurses
 .PHONY: all clean
 
 # 'all' is the default target. It depends on the binaries that need to be built.
-all: lizardsNroaches_server roaches_client lizard_client 
+all: lizardsNroaches_server roaches_client lizard_client
 
 # Rule for building lizardsNroaches_server
-lizardsNroaches_server: lizardsNroaches-server.c zhelpers.h remote-char.h
-	$(CC) $(CFLAGS) -o lizardsNroaches_server lizardsNroaches-server.c $(LIBS)
+lizardsNroaches_server: lizardsNroaches-server.c lists.o zhelpers.h remote-char.h lists.h
+	$(CC) $(CFLAGS) -o lizardsNroaches_server lizardsNroaches-server.c lists.o $(LIBS)
+
+# Rule for compiling lists.c to an object file
+lists.o: lists.c lists.h
+	$(CC) $(CFLAGS) -c lists.c
 
 # Rule for building roaches_client
 roaches_client: roaches-client.c zhelpers.h remote-char.h
 	$(CC) $(CFLAGS) -o roaches_client roaches-client.c $(LIBS)
 
-# Rule for building roaches_client
-lizard_client : lizard-client.c zhelpers.h remote-char.h
-	$(CC) $(CFLAGS) -o lizard_client  lizard-client.c $(LIBS)
+# Rule for building lizard_client
+lizard_client: lizard-client.c zhelpers.h remote-char.h
+	$(CC) $(CFLAGS) -o lizard_client lizard-client.c $(LIBS)
 
 # Rule for cleaning up the build artifacts
 clean:
-	rm -f lizardsNroaches_server roaches_client lizard_client 
+	rm -f lizardsNroaches_server roaches_client lizard_client lists.o

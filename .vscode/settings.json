@@ -7,7 +7,10 @@
     "stdint.h": "c",
     "stdbool.h": "c",
     "time.h": "c",
-    "fcntl.h": "c"
+    "fcntl.h": "c",
+    "string_view": "c",
+    "initializer_list": "c",
+    "utility": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",

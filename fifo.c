@@ -1,41 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "lists.h"
+#include "fifo.h"
 
-// Function to create a new list_element
-list_element* createlist_element(square data) {
-    list_element* newlist_element = (list_element*)malloc(sizeof(list_element));
-    newlist_element->data = data;
-    newlist_element->next = NULL;
-    return newlist_element;
+// Function to create a new fifo_element
+fifo_element* createfifo_element(dead_roach data) {
+    fifo_element* newfifo_element = (fifo_element*)malloc(sizeof(fifo_element));
+    newfifo_element->data = data;
+    newfifo_element->next = NULL;
+    return newfifo_element;
 }
 
-// Function to insert a new list_element at the end
-void insertEnd(list_element** head, square data) {
-    list_element* newlist_element = createlist_element(data);
+// Function to insert a new fifo_element at the end
+void insertEnd_fifo(fifo_element** head, dead_roach data) {
+    fifo_element* newfifo_element = createfifo_element(data);
     if (*head == NULL) {
-        *head = newlist_element;
+        *head = newfifo_element;
         return;
     }
 
-    list_element* temp = *head;
+    fifo_element* temp = *head;
     while (temp->next != NULL) {
         temp = temp->next;
     }
-    temp->next = newlist_element;
+    temp->next = newfifo_element;
 }
 
-// Function to insert a new list_element at the beginning
-list_element* insertBegin(list_element** head, square data) {
-    list_element* newlist_element = createlist_element(data);
-    newlist_element->next = *head;
-    *head = newlist_element;
-
-    return *head;
-}
-
-int compare(square data1, square data2) {
-    if (data1.element_type != data2.element_type ||
+int compare_fifo(dead_roach data1, dead_roach data2) {
+    if (data1.death_time != data2.death_time ||
         data1.index_client != data2.index_client ||
         data1.index_roaches != data2.index_roaches) {
         return 1;
@@ -43,57 +34,29 @@ int compare(square data1, square data2) {
     return 0;
 }
 
-list_element* deletelist_element(list_element** head, square data) {
+// Function to push a new fifo_element onto the stack
+void push_fifo(fifo_element** head, dead_roach data) {
+    insertEnd_fifo(head, data);
+}
+
+
+// Function to pop a fifo_element from the stack
+fifo_element *pop_fifo(fifo_element** head) {
     if (*head == NULL) {
         return NULL;
     }
-
-    list_element* temp = *head;
-    list_element* prev = NULL;
-
-    if (compare(temp->data, data) == 0) {
-        *head = temp->next;
-        free(temp);
-        return *head;
-    }
-
-    while (temp != NULL && compare(temp->data, data) != 0) {
-        prev = temp;
-        temp = temp->next;
-    }
-
-    if (temp == NULL) {
-        return *head;
-    }
-
-    prev->next = temp->next;
+    fifo_element* temp = *head;
+    *head = temp->next;
     free(temp);
 
     return *head;
 }
 
-// Function to push a new list_element onto the stack
-void push(list_element** head, square data) {
-    insertBegin(head, data);
-}
-
-
-// Function to pop a list_element from the stack
-void pop(list_element** head) {
-    if (*head == NULL) {
-        return;
-    }
-
-    list_element* temp = *head;
-    *head = temp->next;
-    free(temp);
-}
-
-// Function to print the linked list
-void printList(list_element* head) {
-    list_element* temp = head;
+// Function to print the fifo
+void printfifo(fifo_element* head) {
+    fifo_element* temp = head;
     while (temp != NULL) {
-        printf("Element Type %d ", temp->data.element_type);
+        printf("Death time %lf ", temp->data.death_time);
         printf("Index Client %d ", temp->data.index_client);
         printf("Index Roaches %d ", temp->data.index_roaches);
         temp = temp->next;
@@ -101,9 +64,9 @@ void printList(list_element* head) {
     printf("\n");
 }
 
-// Function to free the memory allocated for the linked list
-void freeList(list_element* head) {
-    list_element* temp;
+// Function to free the memory allocated for the fifo
+void freefifo(fifo_element* head) {
+    fifo_element* temp;
     while (head != NULL) {
         temp = head;
         head = head->next;

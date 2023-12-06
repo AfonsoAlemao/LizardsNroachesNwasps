@@ -9,24 +9,34 @@
 #include <stdio.h>
 #include <assert.h> 
 #include <math.h>
+#include <time.h>
 
 #include "lists.h"
+#include "fifo.h"
 #include "remote-char.h"
 
 #define WINDOW_SIZE 20 
 #define MAX_LIZARDS 26 
 #define TAIL_SIZE 5
+#define RESPAWN_TIME 5
 
 WINDOW *my_win;
 WINDOW *debug_win;
 list_element ***field;
+fifo_element *roaches_killed;
 
 void new_position(int* x, int *y, direction_t direction);
 int find_ch_info(ch_info_t char_data[], int n_char, int ch);
+void split_health(list_element *head, int index_client, pos_lizards *client_lizards, int element_type);
+void search_and_destroy_roaches(list_element *head, int index_client, pos_lizards *client_lizards, int element_type, pos_roaches *client_roaches);
 void display_in_field(char ch, int x, int y, int index_client, int index_roaches, int element_type, pos_lizards *client_lizards, pos_roaches *client_roaches);
 void tail(direction_t direction, int x, int y, bool delete, int index_client, pos_lizards *client_lizards, pos_roaches *client_roaches);
 bool check_head_in_square(list_element *head);
 char check_prioritary_element(list_element *head, pos_lizards *client_lizards, pos_roaches *client_roaches);
+void *free_safe (void *aux);
+list_element ***allocate3DArray();
+void free3DArray(list_element ***table);
+void ressurect_roaches(pos_roaches *client_roaches);
 
 void new_position(int* x, int *y, direction_t direction){
     switch (direction) {
@@ -122,6 +132,7 @@ void search_and_destroy_roaches(list_element *head, int index_client, pos_lizard
     list_element *current = head;
     list_element *nextNode;
     bool flag = FALSE;
+    dead_roach r;
 
     while (current != NULL) {
         
@@ -134,13 +145,17 @@ void search_and_destroy_roaches(list_element *head, int index_client, pos_lizard
                 index_client, current->data.index_roaches, current->data.element_type, 
                 client_lizards, client_roaches);
 
-            current = deletelist_element(current, current->data);
-            flag = TRUE;
-            
             client_roaches[current->data.index_client].active[current->data.index_roaches] = FALSE;
 
             // insert roach in inactive roaches list with associated start_time
+            r.death_time = clock();
+            r.index_client = current->data.index_client;
+            r.index_roaches = current->data.index_roaches;
+            push_fifo(&roaches_killed, r);
 
+            current = deletelist_element(&current, current->data);
+            flag = TRUE;
+            
         }
     
         if (!flag) {
@@ -175,8 +190,7 @@ void display_in_field(char ch, int x, int y, int index_client,
         }
     }
     else {
-        // add to list position xy in field
-        
+        // add to list position xy in field    
         head = insertBegin(&head, new_data);
         field[x][y] = head;
 
@@ -184,6 +198,7 @@ void display_in_field(char ch, int x, int y, int index_client,
             ch = check_prioritary_element(head, client_lizards, client_roaches);
         }
     }
+
 
     // se for um lizard:
     //  verificar se a tua cabeça coincide com:
@@ -201,7 +216,6 @@ void display_in_field(char ch, int x, int y, int index_client,
     if (element_type == 0) {
         split_health(head, index_client, client_lizards, element_type);
     }
-
 
     wmove(my_win, x, y);
     waddch(my_win, ch | A_BOLD);
@@ -360,6 +374,47 @@ void free3DArray(list_element ***table) {
     table = free_safe(table);
 }
 
+void ressurect_roaches(pos_roaches *client_roaches) {
+    fifo_element *current = roaches_killed;
+    fifo_element *nextNode;
+    double end_time = clock(), inactive_time;
+    bool flag = FALSE;
+
+    while (current != NULL) {
+        inactive_time = ((double) (end_time - current->data.death_time)) / CLOCKS_PER_SEC;
+        if (inactive_time >= RESPAWN_TIME) {
+            client_roaches[current->data.index_client].active[current->data.index_roaches] = TRUE;
+            
+            current = pop_fifo(&current);
+            
+            while (1) {
+                client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
+                client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
+
+                // verify if new position matches the position of anothers' head lizard
+                if(check_head_in_square(field[client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_x]
+                    [client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_y]) == FALSE) {
+                    break;
+                }
+            }
+
+            flag = TRUE;
+        }
+        else {
+            break;
+        }
+
+        if (!flag) {
+            nextNode = current->next;
+            current = nextNode;
+        }
+
+        
+    }
+    return;
+
+}
+
 int main() {
     remote_char_t m;
 
@@ -407,9 +462,9 @@ int main() {
 
     srand(time(NULL));
 
-    while (1)
-    {
+    while (1) {
         // ressurect roaches
+        ressurect_roaches(client_roaches);
 
         recv = zmq_recv (responder, &m, sizeof(remote_char_t), 0);
         assert(recv != -1);
@@ -437,11 +492,9 @@ int main() {
             assert(send != -1);
         }
         
-
         ok = 1;
 
         if(m.msg_type == 0) {
-
             client_roaches[n_clients_roaches].id = m.id;
             client_roaches[n_clients_roaches].nChars = m.nChars;
 
@@ -471,6 +524,7 @@ int main() {
                 /* draw mark on new position */
                 display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
                     index_roaches, element_type, client_lizards, client_roaches);
+                
             }
 
             n_clients_roaches++;
@@ -524,7 +578,6 @@ int main() {
                             /* draw mark on new position */
                             display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
                                 index_roaches, element_type, client_lizards, client_roaches);
-
                         }
                     }
                 }

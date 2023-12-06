@@ -25,6 +25,7 @@ typedef struct square
     */
 }square;
 
+
 // Define a list_element structure
 typedef struct list_element {
     square data;

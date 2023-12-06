@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     char char_ok;
     m.id = id_int;
 
-    int my_score = 0;
+    double my_score = 0;
 
     size_t send, recv;
 
@@ -140,14 +140,14 @@ int main(int argc, char *argv[]) {
         if (key != 'x'){
             send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
             assert(send != -1);
-            recv = zmq_recv (requester, &my_score, sizeof(int), 0);
+            recv = zmq_recv (requester, &my_score, sizeof(double), 0);
             assert(recv != -1);
 
             if(my_score == -1) { //The request was not fullfilled
                 exit(0);
             }
 
-            mvprintw(4, 0, "Your score is %d", my_score);
+            mvprintw(4, 0, "Your score is %lf", my_score);
 
         }
 

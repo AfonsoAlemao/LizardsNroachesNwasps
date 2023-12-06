@@ -25,11 +25,12 @@ typedef struct pos_roaches
     uint32_t id;
     ch_info_t char_data[10];
     int nChars; 
+    bool active[10];
 } pos_roaches;
 
 typedef struct pos_lizards
 {
-    int score;
+    double score;
     uint32_t id;
     ch_info_t char_data; //saves the head position
     direction_t prevdirection;

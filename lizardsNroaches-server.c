@@ -17,16 +17,16 @@
 #define MAX_LIZARDS 26 
 #define TAIL_SIZE 5
 
+WINDOW *my_win;
 WINDOW *debug_win;
+list_element ***field;
 
 void new_position(int* x, int *y, direction_t direction);
 int find_ch_info(ch_info_t char_data[], int n_char, int ch);
-void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***field, int index_client, 
-int index_roaches, int element_type, pos_lizards *client_lizards, pos_roaches *client_roaches);
-void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int index_client, list_element ***field, pos_lizards *client_lizards, pos_roaches *client_roaches);
+void display_in_field(char ch, int x, int y, int index_client, int index_roaches, int element_type, pos_lizards *client_lizards, pos_roaches *client_roaches);
+void tail(direction_t direction, int x, int y, bool delete, int index_client, pos_lizards *client_lizards, pos_roaches *client_roaches);
 bool check_head_in_square(list_element *head);
 char check_prioritary_element(list_element *head, pos_lizards *client_lizards, pos_roaches *client_roaches);
-
 
 void new_position(int* x, int *y, direction_t direction){
     switch (direction) {
@@ -66,7 +66,94 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
     return -1;
 }
 
-void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***field, int index_client, 
+void split_health(list_element *head, int index_client, pos_lizards *client_lizards, int element_type) {
+    // having a tail, we will iterate through the list searching for heads
+    list_element *current = head;
+    list_element *nextNode;
+
+    double avg = 0;
+    bool to_split[MAX_LIZARDS];
+    int counter = 0;
+
+    for (int i = 0; i < MAX_LIZARDS; i++) {
+        if (i == index_client) {
+            to_split[i] = TRUE;
+            counter++;
+        }
+        else {
+            to_split[i] = FALSE;
+        }
+    }
+
+    while (current != NULL) {
+        if (element_type == 0) {
+            if (current->data.element_type == 1) { // head of lizard
+                avg += client_lizards[current->data.index_client].score;
+                to_split[current->data.index_client] = TRUE;
+                counter++;
+                break;
+            }
+        }
+        if (element_type == 1) {
+            if (current->data.element_type == 0) { // head of lizard
+                avg += client_lizards[current->data.index_client].score;
+                to_split[current->data.index_client] = TRUE;
+                counter++;
+            }
+        }
+    
+        nextNode = current->next;
+        current = nextNode;
+    }
+
+    avg = avg / counter;
+
+    for (int i = 0; i < MAX_LIZARDS; i++) {
+        if (to_split[i]) {
+            client_lizards[i].score = avg;
+        }
+    }
+
+    return;
+}
+
+void search_and_destroy_roaches(list_element *head, int index_client, pos_lizards *client_lizards, int element_type, pos_roaches *client_roaches) {
+    // having a tail, we will iterate through the list searching for heads
+    list_element *current = head;
+    list_element *nextNode;
+    bool flag = FALSE;
+
+    while (current != NULL) {
+        
+        if (current->data.element_type == 2) { //found roach
+            //increase lizard score
+            client_lizards[index_client].score += client_roaches[current->data.index_client].char_data[current->data.index_roaches].ch;
+            //destroy roach and 5 seconds later respawn it in a random position
+            display_in_field(' ', client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_x, 
+                client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_y, 
+                index_client, current->data.index_roaches, current->data.element_type, 
+                client_lizards, client_roaches);
+
+            current = deletelist_element(current, current->data);
+            flag = TRUE;
+            
+            client_roaches[current->data.index_client].active[current->data.index_roaches] = FALSE;
+
+            // insert roach in inactive roaches list with associated start_time
+
+        }
+    
+        if (!flag) {
+            nextNode = current->next;
+            current = nextNode;
+        }
+    }
+
+
+    return;
+}
+
+void display_in_field(char ch, int x, int y, int index_client, 
                     int index_roaches, int element_type, pos_lizards *client_lizards, pos_roaches *client_roaches) {
     
     list_element *head;
@@ -93,7 +180,7 @@ void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***fie
         head = insertBegin(&head, new_data);
         field[x][y] = head;
 
-        if (head != NULL && head->data.element_type == 0) {
+        if (head != NULL && element_type == 0) {
             ch = check_prioritary_element(head, client_lizards, client_roaches);
         }
     }
@@ -102,17 +189,26 @@ void display_in_field(WINDOW *my_win, char ch, int x, int y, list_element ***fie
     //  verificar se a tua cabeça coincide com:
     //      - uma barata (comer barata), ou seja vai aumentar o seu score, e a barata desaparece 5 segundos e reaparece aleatoriamente
     //      - uma tail: repartir os pontos de ambos os lizards
+    if (element_type == 1) {
+        search_and_destroy_roaches(head, index_client, client_lizards, element_type, client_roaches);
+        split_health(head, index_client, client_lizards, element_type);
+    }
+
 
     // se for uma tail:
-    //  verifiar se coincide com:
+    //  verificar se coincide com:
     //      - uma head de um lizard: repartir os pontos de ambos os lizards
+    if (element_type == 0) {
+        split_health(head, index_client, client_lizards, element_type);
+    }
+
 
     wmove(my_win, x, y);
     waddch(my_win, ch | A_BOLD);
     wrefresh(my_win);
 }
 
-void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int index_client, list_element ***field, pos_lizards *client_lizards, pos_roaches *client_roaches) {
+void tail(direction_t direction, int x, int y, bool delete, int index_client, pos_lizards *client_lizards, pos_roaches *client_roaches) {
     char display;
     if (delete == TRUE) {
         display = ' ';
@@ -129,8 +225,8 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
     case LEFT:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (y + kk < WINDOW_SIZE - 1) {
-                display_in_field(my_win, display, x, y + kk, field, index_client, 
-                index_roaches, element_type, client_lizards, client_roaches);
+                display_in_field(display, x, y + kk, index_client, 
+                    index_roaches, element_type, client_lizards, client_roaches);
             }
         }
         break;
@@ -138,8 +234,8 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
     case RIGHT:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (y - kk > 1) {
-                display_in_field(my_win, display, x, y - kk, field, index_client, 
-                index_roaches, element_type, client_lizards, client_roaches);
+                display_in_field(display, x, y - kk, index_client, 
+                    index_roaches, element_type, client_lizards, client_roaches);
             }
         }
         break;
@@ -147,8 +243,8 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
     case DOWN:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (x - kk > 1) {
-                display_in_field(my_win, display, x - kk, y, field, index_client, 
-                index_roaches, element_type, client_lizards, client_roaches);
+                display_in_field( display, x - kk, y, index_client, 
+                    index_roaches, element_type, client_lizards, client_roaches);
             }
         }
         break;
@@ -156,8 +252,8 @@ void tail(direction_t direction, int x, int y, bool delete, WINDOW *my_win, int 
     case UP:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (x + kk < WINDOW_SIZE - 1) {
-                display_in_field(my_win, display, x + kk, y, field, index_client, 
-                index_roaches, element_type, client_lizards, client_roaches);
+                display_in_field(display, x + kk, y, index_client, 
+                    index_roaches, element_type, client_lizards, client_roaches);
             }
         }
         break;
@@ -267,8 +363,6 @@ void free3DArray(list_element ***table) {
 int main() {
     remote_char_t m;
 
-    list_element ***field;
-
     field = allocate3DArray();
 
     void *context = zmq_ctx_new ();
@@ -315,6 +409,8 @@ int main() {
 
     while (1)
     {
+        // ressurect roaches
+
         recv = zmq_recv (responder, &m, sizeof(remote_char_t), 0);
         assert(recv != -1);
         if (m.nChars + total_roaches > max_roaches && m.msg_type == 0) {
@@ -351,6 +447,7 @@ int main() {
 
             for (i = 0; i < m.nChars; i++) {
                 client_roaches[n_clients_roaches].char_data[i].ch = m.ch[i];
+                client_roaches[n_clients_roaches].active[i] = TRUE;
 
                 while (1) {
                     client_roaches[n_clients_roaches].char_data[i].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
@@ -372,8 +469,8 @@ int main() {
                 element_type = 2;
 
                 /* draw mark on new position */
-                display_in_field(my_win, ch, pos_x_roaches, pos_y_roaches, field, index_client, 
-                index_roaches, element_type, client_lizards, client_roaches);
+                display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
+                    index_roaches, element_type, client_lizards, client_roaches);
             }
 
             n_clients_roaches++;
@@ -381,6 +478,7 @@ int main() {
 
         }
         else if (m.msg_type == 1){
+
             uint32_t index_client_roaches_id = 0;
 
             for (int jjj = 0; jjj < n_clients_roaches;jjj++) {
@@ -391,41 +489,43 @@ int main() {
             }
 
             for (i = 0; i < m.nChars; i++) {
+                if (client_roaches[n_clients_roaches].active[i] == TRUE) {
 
-                pos_x_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_x;
-                pos_y_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_y;
-                ch = client_roaches[index_client_roaches_id].char_data[i].ch;
+                    pos_x_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_x;
+                    pos_y_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_y;
+                    ch = client_roaches[index_client_roaches_id].char_data[i].ch;
 
-                pos_x_roaches_aux = pos_x_roaches;
-                pos_y_roaches_aux = pos_y_roaches;
+                    pos_x_roaches_aux = pos_x_roaches;
+                    pos_y_roaches_aux = pos_y_roaches;
 
-                new_position(&pos_x_roaches_aux, &pos_y_roaches_aux, m.direction[i]);
-               
-                if (!(pos_x_roaches_aux < 0 || pos_y_roaches_aux < 0  || pos_x_roaches_aux >= WINDOW_SIZE || pos_y_roaches_aux  >= WINDOW_SIZE)) {
-                    // verify if new position matches the position of anothers' head lizard
-                    if (check_head_in_square(field[pos_x_roaches_aux][pos_y_roaches_aux]) == FALSE) {
-                        
-                        index_client = index_client_roaches_id;
-                        index_roaches = i;  
-                        element_type = 2;
+                    new_position(&pos_x_roaches_aux, &pos_y_roaches_aux, m.direction[i]);
+                
+                    if (!(pos_x_roaches_aux < 0 || pos_y_roaches_aux < 0  || pos_x_roaches_aux >= WINDOW_SIZE || pos_y_roaches_aux  >= WINDOW_SIZE)) {
+                        // verify if new position matches the position of anothers' head lizard
+                        if (check_head_in_square(field[pos_x_roaches_aux][pos_y_roaches_aux]) == FALSE) {
+                            
+                            index_client = index_client_roaches_id;
+                            index_roaches = i;  
+                            element_type = 2;
 
-                        /* draw mark on new position */
-                        display_in_field(my_win, ' ', pos_x_roaches, pos_y_roaches, field, index_client, 
-                        index_roaches, element_type, client_lizards, client_roaches);
+                            /* draw mark on new position */
+                            display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
+                                index_roaches, element_type, client_lizards, client_roaches);
 
-                        /* calculates new mark position */
-                        pos_x_roaches = pos_x_roaches_aux;
-                        pos_y_roaches = pos_y_roaches_aux;
-                        client_roaches[index_client_roaches_id].char_data[i].pos_x = pos_x_roaches;
-                        client_roaches[index_client_roaches_id].char_data[i].pos_y = pos_y_roaches;
+                            /* calculates new mark position */
+                            pos_x_roaches = pos_x_roaches_aux;
+                            pos_y_roaches = pos_y_roaches_aux;
+                            client_roaches[index_client_roaches_id].char_data[i].pos_x = pos_x_roaches;
+                            client_roaches[index_client_roaches_id].char_data[i].pos_y = pos_y_roaches;
 
-                        index_client = index_client_roaches_id;
-                        index_roaches = i;  
-                        element_type = 2;
-                        /* draw mark on new position */
-                        display_in_field(my_win, ch, pos_x_roaches, pos_y_roaches, field, index_client, 
-                        index_roaches, element_type, client_lizards, client_roaches);
+                            index_client = index_client_roaches_id;
+                            index_roaches = i;  
+                            element_type = 2;
+                            /* draw mark on new position */
+                            display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
+                                index_roaches, element_type, client_lizards, client_roaches);
 
+                        }
                     }
                 }
             }
@@ -455,7 +555,8 @@ int main() {
 
             m.direction[0] = rand() % 4;
             
-            tail(m.direction[0], pos_x_lizards, pos_y_lizards, FALSE, my_win, total_lizards, field, client_lizards, client_roaches);
+            tail(m.direction[0], pos_x_lizards, pos_y_lizards, 
+                FALSE, total_lizards, client_lizards, client_roaches);
 
             client_lizards[total_lizards].prevdirection = m.direction[0];
 
@@ -464,8 +565,8 @@ int main() {
             element_type = 1;
 
             /* draw mark on new position */
-            display_in_field(my_win, ch, pos_x_lizards, pos_y_lizards, field, index_client, 
-            index_roaches, element_type, client_lizards, client_roaches);
+            display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
+                index_roaches, element_type, client_lizards, client_roaches);
 
             total_lizards++;
 
@@ -495,15 +596,15 @@ int main() {
 
                     // delete old tail
                     tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
-                        TRUE, my_win, index_client_lizards_id, field, client_lizards, client_roaches);
+                        TRUE, index_client_lizards_id, client_lizards, client_roaches);
 
                     index_client = index_client_lizards_id;
                     index_roaches = -1;  
                     element_type = 1;
                     
                     /*deletes old place */
-                    display_in_field(my_win, ' ', pos_x_lizards, pos_y_lizards, field, index_client, 
-                    index_roaches, element_type, client_lizards, client_roaches);
+                    display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+                        index_roaches, element_type, client_lizards, client_roaches);
 
                     /* calculates new mark position */
                     pos_x_lizards = pos_x_lizards_aux;
@@ -515,16 +616,17 @@ int main() {
                     index_roaches = -1;  
                     element_type = 1;
                     /* draw mark on new position */
-                    display_in_field(my_win, ch, pos_x_lizards, pos_y_lizards, field, index_client, 
-                    index_roaches, element_type, client_lizards, client_roaches);
+                    display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
+                        index_roaches, element_type, client_lizards, client_roaches);
 
 
-                    tail(m.direction[0], pos_x_lizards, pos_y_lizards, FALSE, my_win, index_client_lizards_id, field, client_lizards, client_roaches);
+                    tail(m.direction[0], pos_x_lizards, pos_y_lizards, FALSE, 
+                        index_client_lizards_id, client_lizards, client_roaches);
 
                     client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
                 }
                 
-                send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(int), 0);
+                send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(double), 0);
                 assert(send != -1);
                 
             }
@@ -532,7 +634,7 @@ int main() {
         else if(m.msg_type == 4){
             uint32_t index_client_lizards_id = 0;
 
-            for(int jjj = 0; jjj < total_lizards;jjj++) {
+            for(int jjj = 0; jjj < total_lizards; jjj++) {
                 if(client_lizards[jjj].id == m.id) {
                     index_client_lizards_id = jjj;
                     break;
@@ -544,15 +646,16 @@ int main() {
             ch = client_lizards[index_client_lizards_id].char_data.ch;
 
             /* delete old tail */
-            tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, TRUE, my_win, index_client_lizards_id, field, client_lizards, client_roaches);
+            tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
+                TRUE, index_client_lizards_id, client_lizards, client_roaches);
 
             index_client = index_client_lizards_id;
             index_roaches = -1;  
             element_type = 1;
 
             /* deletes old place */
-            display_in_field(my_win, ' ', pos_x_lizards, pos_y_lizards, field, index_client, 
-            index_roaches, element_type, client_lizards, client_roaches);
+            display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+                index_roaches, element_type, client_lizards, client_roaches);
 
             client_lizards[total_lizards].valid = FALSE;
         }

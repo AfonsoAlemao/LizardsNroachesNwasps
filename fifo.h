@@ -31,7 +31,7 @@ void insertEnd_fifo(fifo_element** head, dead_roach data);
 void push_fifo(fifo_element** head, dead_roach data);
 
 // Function to pop a fifo_element from the stack
-fifo_element *pop_fifo(fifo_element** head);
+void pop_fifo(fifo_element** head);
 
 // Function to print the fifo
 void printfifo(fifo_element* head);

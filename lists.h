@@ -39,10 +39,10 @@ list_element* createlist_element(square data);
 void insertEnd(list_element** head, square data);
 
 // Function to insert a new list_element at the beginning
-list_element* insertBegin(list_element** head, square data);
+void insertBegin(list_element** head, square data);
 
 // Function to delete a list_element with a given value
-list_element* deletelist_element(list_element** head, square data);
+void deletelist_element(list_element** head, square data);
 
 // Function to push a new list_element onto the stack
 void push(list_element** head, square data);

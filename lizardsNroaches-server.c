@@ -30,7 +30,7 @@ pos_lizards client_lizards[MAX_LIZARDS];
 void new_position(int* x, int *y, direction_t direction);
 int find_ch_info(ch_info_t char_data[], int n_char, int ch);
 void split_health(list_element *head, int index_client, int element_type);
-void search_and_destroy_roaches(list_element *head, int index_client, int element_type);
+void search_and_destroy_roaches(list_element *head, int index_client);
 list_element *display_in_field(char ch, int x, int y, int index_client, int index_roaches, int element_type, list_element *head);
 void tail(direction_t direction, int x, int y, bool delete, int index_client);
 bool check_head_in_square(list_element *head);
@@ -91,6 +91,7 @@ void split_health(list_element *head, int index_client, int element_type) {
         if (i == index_client) {
             to_split[i] = TRUE;
             counter++;
+            avg += client_lizards[i].score;
         }
         else {
             to_split[i] = FALSE;
@@ -99,7 +100,7 @@ void split_health(list_element *head, int index_client, int element_type) {
 
     while (current != NULL) {
         if (element_type == 0) {
-            if (current->data.element_type == 1) { // head of lizard
+            if (current->data.element_type == 1 && current->data.index_client != index_client) { // head of lizard
                 avg += client_lizards[current->data.index_client].score;
                 to_split[current->data.index_client] = TRUE;
                 counter++;
@@ -107,7 +108,7 @@ void split_health(list_element *head, int index_client, int element_type) {
             }
         }
         if (element_type == 1) {
-            if (current->data.element_type == 0) { // head of lizard
+            if (current->data.element_type == 0 && current->data.index_client != index_client) { // head of lizard
                 avg += client_lizards[current->data.index_client].score;
                 to_split[current->data.index_client] = TRUE;
                 counter++;
@@ -129,44 +130,130 @@ void split_health(list_element *head, int index_client, int element_type) {
     return;
 }
 
-void search_and_destroy_roaches(list_element *head, int index_client, int element_type) {
+void search_and_destroy_roaches(list_element *head, int index_client) {
     // having a tail, we will iterate through the list searching for heads
     list_element *current = head;
     list_element *nextNode;
-    bool flag = FALSE;
+    bool end = FALSE;
     dead_roach r;
     square s;
 
-    while (current != NULL) {
-        
-        if (current->data.element_type == 2) { //found roach
-            //increase lizard score
-            client_lizards[index_client].score += client_roaches[current->data.index_client].char_data[current->data.index_roaches].ch - '0';
+    while (!end) {
+        while (current != NULL) {
+            
+            if (current->data.element_type == 2) { //found roach
+                // mvwprintw(debug_win, 1, 1, "Index Client %d, Index Roaches %d", current->data.index_client, current->data.index_roaches);
+                // wrefresh(debug_win);
 
-            client_roaches[current->data.index_client].active[current->data.index_roaches] = FALSE;
+                //increase lizard score
+                client_lizards[index_client].score += client_roaches[current->data.index_client].char_data[current->data.index_roaches].ch - '0';
 
-            // insert roach in inactive roaches list with associated start_time
-            r.death_time = clock();
-            r.index_client = current->data.index_client;
-            r.index_roaches = current->data.index_roaches;
-            push_fifo(&roaches_killed, r);
+                client_roaches[current->data.index_client].active[current->data.index_roaches] = FALSE;
 
-            s.element_type = current->data.element_type;
-            s.index_client = current->data.index_client;
-            s.index_roaches = current->data.index_roaches;
-            current = deletelist_element(&current, s);
+                // mvwprintw(debug_win, 2, 1, "Index Client %d, Index Roaches %d", current->data.index_client, current->data.index_roaches);
+                // wrefresh(debug_win);
 
-            flag = TRUE;
+                // insert roach in inactive roaches list with associated start_time
+                r.death_time = clock();
+
+                // mvwprintw(debug_win, 3, 1, "Index Client %d, Index Roaches %d", current->data.index_client, current->data.index_roaches);
+                // wrefresh(debug_win);
+
+                r.index_client = current->data.index_client;
+                r.index_roaches = current->data.index_roaches;
+
+                // mvwprintw(debug_win, 4, 1, "Index Client %d, Index Roaches %d", r.index_client, r.index_roaches);
+                // wrefresh(debug_win);
+
+                ///////
+                //printar a lista antes de eliminar a barata
+                // fifo_element* temp;
+                // int kkkk=1;
+
+                // mvwprintw(debug_win, kkkk, 1, "antes de apagar barata r death_time %lf, Index Client %d, Index Roaches %d", r.death_time,
+                //     r.index_client, r.index_roaches);
+                // wrefresh(debug_win);
+                // kkkk++;
+
+                // temp=roaches_killed;
+                // // kkkk=1;
+                // while (temp != NULL) {
+                //     mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
+                //     temp->data.index_client, temp->data.index_roaches);
+                //     wrefresh(debug_win);
+                //     kkkk+=1;
+                //     temp = temp->next;
+                // }
+
+                push_fifo(&roaches_killed, r);
+
+                //printar a lista antes de eliminar a barata
+                // mvwprintw(debug_win, kkkk, 1, "depois de apagar barata");
+                // wrefresh(debug_win);
+                // kkkk++;
+
+                // temp=roaches_killed;
+                // while (temp != NULL) {
+                //     mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
+                //     temp->data.index_client, temp->data.index_roaches);
+                //     wrefresh(debug_win);
+                //     kkkk+=1;
+                //     temp = temp->next;
+                // }
+
+                /////
+
+                s.element_type = current->data.element_type;
+                s.index_client = current->data.index_client;
+                s.index_roaches = current->data.index_roaches;
+
+                ///
+                ///////
+                //printar a lista antes de eliminar a barata
+                // list_element* temp2;
+                // int kkkk=0;
+
+                // mvwprintw(debug_win, kkkk, 1, "antes de apagar barata");
+                // wrefresh(debug_win);
+                // kkkk++;
+
+                // temp2=head;
+                // kkkk=1;
+                // while (temp2 != NULL) {
+                //     mvwprintw(debug_win, kkkk, 1, "death_time %d, Index Client %d, Index Roaches %d", temp2->data.element_type,
+                //     temp2->data.index_client, temp2->data.index_roaches);
+                //     wrefresh(debug_win);
+                //     kkkk+=1;
+                //     temp2 = temp2->next;
+                // }
+
+                deletelist_element(&head, s);
+
+                // //printar a lista antes de eliminar a barata
+                // mvwprintw(debug_win, kkkk, 1, "depois de apagar barata");
+                // wrefresh(debug_win);
+                // kkkk++;
+
+                // temp2=head;
+                // while (temp2 != NULL) {
+                //     mvwprintw(debug_win, kkkk, 1, "death_time %d, Index Client %d, Index Roaches %d", temp2->data.element_type,
+                //     temp2->data.index_client, temp2->data.index_roaches);
+                //     wrefresh(debug_win);
+                //     kkkk+=1;
+                //     temp2 = temp2->next;
+                // }
 
 
-            // mvwprintw(debug_win, 1, 1, "r.death_time %lf", r.death_time);
-            // wrefresh(debug_win);
+                ///
 
-        }
-    
-        if (!flag) {
+                break;
+            }
             nextNode = current->next;
             current = nextNode;
+            if (current == NULL) {
+                end = TRUE;
+            }
+        
         }
     }
 
@@ -184,41 +271,63 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
 
     if (ch == ' ') {
         // delete from list position xy in field
-        head = deletelist_element(&head, new_data);
+        // if (element_type == 0) {
+        //     mvwprintw(debug_win, 1, 1, "%d-%d", head->next.data.element_type, element_type);
+        //     wrefresh(debug_win);
+        //     mvwprintw(debug_win, 2, 1, "%d-%d", head->next.index_client, index_client);
+        //     wrefresh(debug_win);
+        //     mvwprintw(debug_win, 3, 1, "%d-%d", head->next.index_roaches, index_roaches);
+        //     wrefresh(debug_win);
+        // }   
+        deletelist_element(&head, new_data);
 
         // verificar se nesta posiçao existem mais elementos? se existirem display = True
         if (head != NULL) {
-            ch = check_prioritary_element(head);          
+            ch = check_prioritary_element(head); 
+            // if (element_type == 0) {
+            //     mvwprintw(debug_win, 4, 1, "%d", head->data.element_type);
+            //     wrefresh(debug_win);
+            //     mvwprintw(debug_win, 5, 1, "%d", head->data.index_client);
+            //     wrefresh(debug_win);
+            //     mvwprintw(debug_win, 6, 1, "%d", head->data.index_roaches);
+            //     wrefresh(debug_win);
+            // }       
         }
+        // else {
+        //     if (element_type == 0) {
+        //         mvwprintw(debug_win, 4, 1, "NULL");
+        //         wrefresh(debug_win);
+        //     }     
+        // }
+
+        
+        
     }
     else {
         // add to list position xy in field    
-        head = insertBegin(&head, new_data);
+        insertBegin(&head, new_data);
 
         if (head != NULL && element_type == 0) {
             ch = check_prioritary_element(head);
         }
-    }
 
-    // se for um lizard:
-    //  verificar se a tua cabeça coincide com:
-    //      - uma barata (comer barata), ou seja vai aumentar o seu score, e a barata desaparece 5 segundos e reaparece aleatoriamente
-    //      - uma tail: repartir os pontos de ambos os lizards
-    if (element_type == 1) {
-        search_and_destroy_roaches(head, index_client, element_type);
-        
-        mvwprintw(debug_win, 1, 1, "%lf", client_lizards[index_client].score);
-        wrefresh(debug_win);
+        // se for um lizard:
+        //  verificar se a tua cabeça coincide com:
+        //      - uma barata (comer barata), ou seja vai aumentar o seu score, e a barata desaparece 5 segundos e reaparece aleatoriamente
+        //      - uma tail: repartir os pontos de ambos os lizards
+        if (element_type == 1) {
+            search_and_destroy_roaches(head, index_client);
+            split_health(head, index_client, element_type);
+        }
 
-        split_health(head, index_client, element_type);
+        // se for uma tail:
+        //  verificar se coincide com:
+        //      - uma head de um lizard: repartir os pontos de ambos os lizards
+        if (element_type == 0) {
+            split_health(head, index_client, element_type);
+        }
     }
-
-    // se for uma tail:
-    //  verificar se coincide com:
-    //      - uma head de um lizard: repartir os pontos de ambos os lizards
-    if (element_type == 0) {
-        split_health(head, index_client, element_type);
-    }
+    
 
     wmove(my_win, x, y);
     waddch(my_win, ch | A_BOLD);
@@ -378,50 +487,76 @@ void free3DArray(list_element ***table) {
 }
 
 void ressurect_roaches() {
-    fifo_element *current = roaches_killed;
-    fifo_element *nextNode;
     double end_time, inactive_time;
-    bool flag = FALSE;
 
-    end_time = clock();
-
-    while (current != NULL) {
-
-        // mvwprintw(debug_win, 2, 1, "%lf", current->data.death_time);
-        // wrefresh(debug_win);
-
-        inactive_time = ((double) (end_time - current->data.death_time)) / CLOCKS_PER_SEC;
+    while (roaches_killed != NULL) {
+        end_time = clock();
+        inactive_time = 1000 * ((double) (end_time - roaches_killed->data.death_time)) / CLOCKS_PER_SEC; 
+        mvwprintw(debug_win, 1, 1, "%lf", inactive_time);
+        wrefresh(debug_win);
+        
         if (inactive_time >= RESPAWN_TIME) {
-            client_roaches[current->data.index_client].active[current->data.index_roaches] = TRUE;
-            
-            current = pop_fifo(&current);
+
+            client_roaches[roaches_killed->data.index_client].active[roaches_killed->data.index_roaches] = TRUE;
+        
             
             while (1) {
-                client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
-                client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
+                client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
+                client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
 
                 // verify if new position matches the position of anothers' head lizard
-                if(check_head_in_square(field[client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_x]
-                    [client_roaches[current->data.index_client].char_data[current->data.index_roaches].pos_y]) == FALSE) {
+                if(check_head_in_square(field[client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_x]
+                    [client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_y]) == FALSE) {
                     break;
                 }
             }
 
-            flag = TRUE;
-        }
+            ///////
+            //printar a lista antes de eliminar a barata
+            fifo_element* temp;
+            int kkkk=1;
+
+            mvwprintw(debug_win, kkkk, 1, "antes de apagar 1ª barata");
+            wrefresh(debug_win);
+            kkkk++;
+
+            temp=roaches_killed;
+            // kkkk=1;
+            while (temp != NULL) {
+                mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
+                temp->data.index_client, temp->data.index_roaches);
+                wrefresh(debug_win);
+                kkkk+=1;
+                temp = temp->next;
+            }
+
+            pop_fifo(&roaches_killed);
+
+            //printar a lista antes de eliminar a barata
+            mvwprintw(debug_win, kkkk, 1, "depois de apagar barata");
+            wrefresh(debug_win);
+            kkkk++;
+
+            temp=roaches_killed;
+            while (temp != NULL) {
+                mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
+                temp->data.index_client, temp->data.index_roaches);
+                wrefresh(debug_win);
+                kkkk+=1;
+                temp = temp->next;
+            }
+
+            /////
+            
+
+        }      
         else {
             break;
         }
-
-        if (!flag) {
-            nextNode = current->next;
-            current = nextNode;
-        }
-
         
     }
-    return;
 
+    return;
 }
 
 int main() {
@@ -581,9 +716,6 @@ int main() {
                             client_roaches[index_client_roaches_id].char_data[i].pos_x = pos_x_roaches;
                             client_roaches[index_client_roaches_id].char_data[i].pos_y = pos_y_roaches;
 
-                            index_client = index_client_roaches_id;
-                            index_roaches = i;  
-                            element_type = 2;
                             /* draw mark on new position */
                             field[pos_x_roaches][pos_y_roaches] = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
                                 index_roaches, element_type, field[pos_x_roaches][pos_y_roaches]);
@@ -660,10 +792,14 @@ int main() {
                     tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
                         TRUE, index_client_lizards_id);
 
+                    // new tail
+                    tail(m.direction[0], pos_x_lizards_aux, pos_y_lizards_aux, FALSE, 
+                        index_client_lizards_id);
+
                     index_client = index_client_lizards_id;
                     index_roaches = -1;  
-                    element_type = 1;
-                    
+                    element_type = 1;              
+
                     /*deletes old place */
                     field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
                         index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
@@ -678,15 +814,9 @@ int main() {
                     index_roaches = -1;  
                     element_type = 1;
                     /* draw mark on new position */
-                    mvwprintw(debug_win, 4, 1, "%lf", client_lizards[index_client].score);
-                    wrefresh(debug_win);
                     field[pos_x_lizards][pos_y_lizards] = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
                         index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
-                    mvwprintw(debug_win, 5, 1, "%lf", client_lizards[index_client].score);
-                    wrefresh(debug_win);
-
-                    tail(m.direction[0], pos_x_lizards, pos_y_lizards, FALSE, 
-                        index_client_lizards_id);
+                    
 
                     client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
                 }

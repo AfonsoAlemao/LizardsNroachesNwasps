@@ -16,12 +16,13 @@
 #include "remote-char.h"
 
 #define WINDOW_SIZE 20 
-#define MAX_LIZARDS 26
+#define MAX_LIZARDS 2
 #define TAIL_SIZE 5
 #define RESPAWN_TIME 5
 
 WINDOW *my_win;
 WINDOW *debug_win;
+WINDOW *stats_win;
 list_element ***field;
 fifo_element *roaches_killed;
 pos_roaches *client_roaches;
@@ -40,16 +41,16 @@ list_element ***allocate3DArray();
 void free3DArray(list_element ***table);
 void ressurect_roaches();
 
-void new_position(int* x, int *y, direction_t direction){
+void new_position(int *x, int *y, direction_t direction){
     switch (direction) {
         case UP:
             (*x) --;
-            if(*x ==0)
+            if(*x == 0)
                 *x = 2;
             break;
         case DOWN:
             (*x) ++;
-            if(*x ==WINDOW_SIZE-1)
+            if(*x == WINDOW_SIZE-1)
                 *x = WINDOW_SIZE-3;
             break;
         case LEFT:
@@ -59,7 +60,7 @@ void new_position(int* x, int *y, direction_t direction){
             break;
         case RIGHT:
             (*y) ++;
-            if(*y ==WINDOW_SIZE-1)
+            if(*y == WINDOW_SIZE-1)
                 *y = WINDOW_SIZE-3;
             break;
         case NONE:
@@ -81,52 +82,28 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
 void split_health(list_element *head, int index_client, int element_type) {
     // having a tail, we will iterate through the list searching for heads
     list_element *current = head;
-    list_element *nextNode;
+    // list_element *nextNode;
+    double split = 0;
+    double sum = 0;
 
-    double avg = 0;
-    bool to_split[MAX_LIZARDS];
-    int counter = 0;
+    sum = client_lizards[index_client].score;
 
-    for (int i = 0; i < MAX_LIZARDS; i++) {
-        if (i == index_client) {
-            to_split[i] = TRUE;
-            counter++;
-            avg += client_lizards[i].score;
-        }
-        else {
-            to_split[i] = FALSE;
-        }
-    }
+    // while (current != NULL) {
+    //     if (element_type == 1) {    
+    //         if (current->data.element_type == 1 && current->data.index_client != index_client) { // head of lizard
+    //             sum += client_lizards[current->data.index_client].score;
+    //         }
+    //     }
+    //     nextNode = current->next;
+    //     current = nextNode;
+    // }
+    sum += client_lizards[current->data.index_client].score;
 
-    while (current != NULL) {
-        if (element_type == 0) {
-            if (current->data.element_type == 1 && current->data.index_client != index_client) { // head of lizard
-                avg += client_lizards[current->data.index_client].score;
-                to_split[current->data.index_client] = TRUE;
-                counter++;
-                break;
-            }
-        }
-        if (element_type == 1) {
-            if (current->data.element_type == 0 && current->data.index_client != index_client) { // head of lizard
-                avg += client_lizards[current->data.index_client].score;
-                to_split[current->data.index_client] = TRUE;
-                counter++;
-            }
-        }
+    split = sum / 2;
+
+    client_lizards[index_client].score = split;
+    client_lizards[current->data.index_client].score = split;
     
-        nextNode = current->next;
-        current = nextNode;
-    }
-
-    avg = avg / counter;
-
-    for (int i = 0; i < MAX_LIZARDS; i++) {
-        if (to_split[i]) {
-            client_lizards[i].score = avg;
-        }
-    }
-
     return;
 }
 
@@ -317,15 +294,15 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
         //      - uma tail: repartir os pontos de ambos os lizards
         if (element_type == 1) {
             search_and_destroy_roaches(head, index_client);
-            split_health(head, index_client, element_type);
+            // split_health(head, index_client, element_type);
         }
 
         // se for uma tail:
         //  verificar se coincide com:
         //      - uma head de um lizard: repartir os pontos de ambos os lizards
-        if (element_type == 0) {
-            split_health(head, index_client, element_type);
-        }
+        // if (element_type == 0) {
+        //     split_health(head, index_client, element_type);
+        // }
     }
     
 
@@ -565,11 +542,11 @@ void display_stats() {
     int i = 0;
 
     for (int j = 0; j <= MAX_LIZARDS; j++) {
-        mvwprintw(debug_win, j, 1, "\t\t\t\t\t");
-        wrefresh(debug_win);
+        mvwprintw(stats_win, j, 1, "\t\t\t\t\t");
+        wrefresh(stats_win);
         if (client_lizards[j].valid) {
-            mvwprintw(debug_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
-            wrefresh(debug_win);
+            mvwprintw(stats_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
+            wrefresh(stats_win);
             i++;
         }
     }
@@ -597,8 +574,11 @@ int main() {
     box(my_win, 0, 0);
 	wrefresh(my_win);
 
+    // creates a window for stats
+    stats_win = newwin(MAX_LIZARDS + 1, 100, WINDOW_SIZE + 1, 0);
+
     // creates a window for debug
-    debug_win = newwin(MAX_LIZARDS + 1, 100, WINDOW_SIZE + 1, 0);
+    debug_win = newwin(20, 100, WINDOW_SIZE + 1 + MAX_LIZARDS + 1, 0);
     
     // mvwprintw(debug_win, 1, 1, "Your text here");
     // wrefresh(debug_win);
@@ -813,7 +793,6 @@ int main() {
             pos_y_lizards_aux = pos_y_lizards;
 
             new_position(&pos_x_lizards_aux, &pos_y_lizards_aux, m.direction[0]);
-            // verify if new position matches the position of anothers' head lizard TODO
             
             if (!(pos_x_lizards_aux < 0 || pos_y_lizards_aux < 0  || pos_x_lizards_aux >= WINDOW_SIZE || pos_y_lizards_aux  >= WINDOW_SIZE)) {
                 if(check_head_in_square(field[pos_x_lizards_aux][pos_y_lizards_aux]) == FALSE) {
@@ -840,15 +819,22 @@ int main() {
                     client_lizards[index_client_lizards_id].char_data.pos_x = pos_x_lizards;
                     client_lizards[index_client_lizards_id].char_data.pos_y = pos_y_lizards;
 
-                    index_client = index_client_lizards_id;
-                    index_roaches = -1;  
-                    element_type = 1;
+                    // index_client = index_client_lizards_id;
+                    // index_roaches = -1;  
+                    // element_type = 1;
                     /* draw mark on new position */
                     field[pos_x_lizards][pos_y_lizards] = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
                         index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
                     
 
                     client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
+                }
+                else if (check_head_in_square(field[pos_x_lizards_aux][pos_y_lizards_aux]) == TRUE) {
+                    // mvwprintw(debug_win, 1, 0, "%d", field[pos_x_lizards_aux][pos_y_lizards_aux]->data.index_client);
+                    // wrefresh(debug_win);
+                    
+                    split_health(field[pos_x_lizards_aux][pos_y_lizards_aux], index_client_lizards_id, 1);
+                    
                 }
                 
                 send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(double), 0);

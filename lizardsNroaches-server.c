@@ -16,7 +16,7 @@
 #include "remote-char.h"
 
 #define WINDOW_SIZE 20 
-#define MAX_LIZARDS 26 
+#define MAX_LIZARDS 26
 #define TAIL_SIZE 5
 #define RESPAWN_TIME 5
 
@@ -492,8 +492,9 @@ void ressurect_roaches() {
     while (roaches_killed != NULL) {
         end_time = clock();
         inactive_time = 1000 * ((double) (end_time - roaches_killed->data.death_time)) / CLOCKS_PER_SEC; 
-        mvwprintw(debug_win, 1, 1, "%lf", inactive_time);
-        wrefresh(debug_win);
+        // TODO improve this
+        // mvwprintw(debug_win, 1, 1, "%lf", inactive_time);
+        // wrefresh(debug_win);
         
         if (inactive_time >= RESPAWN_TIME) {
 
@@ -516,16 +517,16 @@ void ressurect_roaches() {
             fifo_element* temp;
             int kkkk=1;
 
-            mvwprintw(debug_win, kkkk, 1, "antes de apagar 1ª barata");
-            wrefresh(debug_win);
+            // mvwprintw(debug_win, kkkk, 1, "antes de apagar 1ª barata");
+            // wrefresh(debug_win);
             kkkk++;
 
             temp=roaches_killed;
             // kkkk=1;
             while (temp != NULL) {
-                mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
-                temp->data.index_client, temp->data.index_roaches);
-                wrefresh(debug_win);
+                // mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
+                // temp->data.index_client, temp->data.index_roaches);
+                // wrefresh(debug_win);
                 kkkk+=1;
                 temp = temp->next;
             }
@@ -533,15 +534,15 @@ void ressurect_roaches() {
             pop_fifo(&roaches_killed);
 
             //printar a lista antes de eliminar a barata
-            mvwprintw(debug_win, kkkk, 1, "depois de apagar barata");
-            wrefresh(debug_win);
+            // mvwprintw(debug_win, kkkk, 1, "depois de apagar barata");
+            // wrefresh(debug_win);
             kkkk++;
 
             temp=roaches_killed;
             while (temp != NULL) {
-                mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
-                temp->data.index_client, temp->data.index_roaches);
-                wrefresh(debug_win);
+                // mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
+                // temp->data.index_client, temp->data.index_roaches);
+                // wrefresh(debug_win);
                 kkkk+=1;
                 temp = temp->next;
             }
@@ -557,6 +558,21 @@ void ressurect_roaches() {
     }
 
     return;
+}
+
+void display_stats() {
+    /* TODO: sort */
+    int i = 0;
+
+    for (int j = 0; j <= MAX_LIZARDS; j++) {
+        mvwprintw(debug_win, j, 1, "\t\t\t\t\t");
+        wrefresh(debug_win);
+        if (client_lizards[j].valid) {
+            mvwprintw(debug_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
+            wrefresh(debug_win);
+            i++;
+        }
+    }
 }
 
 int main() {
@@ -582,7 +598,7 @@ int main() {
 	wrefresh(my_win);
 
     // creates a window for debug
-    debug_win = newwin(20, 100, WINDOW_SIZE + 1, 0);
+    debug_win = newwin(MAX_LIZARDS + 1, 100, WINDOW_SIZE + 1, 0);
     
     // mvwprintw(debug_win, 1, 1, "Your text here");
     // wrefresh(debug_win);
@@ -596,6 +612,7 @@ int main() {
     int ok = 1;
     int index_client, index_roaches, element_type;
     size_t send, recv;
+    int index_of_position_to_insert, jj = 0;
     
     int pos_x_roaches, pos_x_lizards, pos_y_roaches, pos_y_lizards;
     int pos_x_roaches_aux, pos_y_roaches_aux, pos_x_lizards_aux, pos_y_lizards_aux;
@@ -622,14 +639,27 @@ int main() {
         else if (m.msg_type == 2) {
             if (total_lizards + 1 > MAX_LIZARDS) {
                 ok = (int) '?'; // in case the pool is full of lizards
+                send = zmq_send (responder, &ok, sizeof(int), 0);
+                assert(send != -1);
+                ok = 1;
+                continue;
             }
             else {
-                ok = (int) 'a' + total_lizards;
+                index_of_position_to_insert = -1;
+                for (jj = 0; jj < MAX_LIZARDS; jj++) {
+                    if (!client_lizards[jj].valid) {
+                        index_of_position_to_insert = jj;
+                        break;
+                    }
+                }
+                ok = (int) 'a' + index_of_position_to_insert;
+
+                send = zmq_send (responder, &ok, sizeof(int), 0);
+                assert(send != -1);
+                ok = 1;
             }
             
-            send = zmq_send (responder, &ok, sizeof(int), 0);
-            assert(send != -1);
-            ok = 1;
+            
         }
         else if (m.msg_type != 3) {
             send = zmq_send (responder, &ok, sizeof(int), 0);
@@ -724,37 +754,37 @@ int main() {
                 }
             }
         }
-        else if (m.msg_type == 2){
-            // TODO: em vez de acrescentar na posiçao (total_lizards), acrescentar na primeira posiçao com .valid=False
-            client_lizards[total_lizards].id = m.id;
-            client_lizards[total_lizards].score = 0;
-            client_lizards[total_lizards].valid = TRUE;
+        else if (m.msg_type == 2) {
+
+            client_lizards[index_of_position_to_insert].id = m.id;
+            client_lizards[index_of_position_to_insert].score = 0;
+            client_lizards[index_of_position_to_insert].valid = TRUE;
 
             while (1) {
-                client_lizards[total_lizards].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
-                client_lizards[total_lizards].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
+                client_lizards[index_of_position_to_insert].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
+                client_lizards[index_of_position_to_insert].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
 
                 // verify if new position matches the position of anothers' head lizard
-                if (check_head_in_square(field[client_lizards[total_lizards].char_data.pos_x]
-                    [client_lizards[total_lizards].char_data.pos_y]) == FALSE) {
+                if (check_head_in_square(field[client_lizards[index_of_position_to_insert].char_data.pos_x]
+                    [client_lizards[index_of_position_to_insert].char_data.pos_y]) == FALSE) {
                     break;
                 }
             }
 
-            client_lizards[total_lizards].char_data.ch = (char) ((int) 'a' + total_lizards);
+            client_lizards[index_of_position_to_insert].char_data.ch = (char) ((int) 'a' + index_of_position_to_insert);
 
-            pos_x_lizards = client_lizards[total_lizards].char_data.pos_x;
-            pos_y_lizards = client_lizards[total_lizards].char_data.pos_y;
-            ch = client_lizards[total_lizards].char_data.ch;
+            pos_x_lizards = client_lizards[index_of_position_to_insert].char_data.pos_x;
+            pos_y_lizards = client_lizards[index_of_position_to_insert].char_data.pos_y;
+            ch = client_lizards[index_of_position_to_insert].char_data.ch;
 
             m.direction[0] = rand() % 4;
             
             tail(m.direction[0], pos_x_lizards, pos_y_lizards, 
-                FALSE, total_lizards);
+                FALSE, index_of_position_to_insert);
 
-            client_lizards[total_lizards].prevdirection = m.direction[0];
+            client_lizards[index_of_position_to_insert].prevdirection = m.direction[0];
 
-            index_client = total_lizards;
+            index_client = index_of_position_to_insert;
             index_roaches = -1;  
             element_type = 1;
 
@@ -769,7 +799,7 @@ int main() {
             uint32_t index_client_lizards_id = 0;
 
             for(int jjj = 0; jjj < total_lizards;jjj++) {
-                if(client_lizards[jjj].id == m.id) {
+                if(client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
                 }
@@ -830,7 +860,7 @@ int main() {
             uint32_t index_client_lizards_id = 0;
 
             for(int jjj = 0; jjj < total_lizards; jjj++) {
-                if(client_lizards[jjj].id == m.id) {
+                if(client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
                 }
@@ -852,8 +882,11 @@ int main() {
             field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
                 index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
 
-            client_lizards[total_lizards].valid = FALSE;
+            client_lizards[index_client_lizards_id].valid = FALSE;
+            total_lizards--;
         }
+
+        display_stats();
         	
     }
     /* End curses mode */

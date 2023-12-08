@@ -597,76 +597,48 @@ int main() {
         ressurect_roaches(client_roaches);
 
         recv = zmq_recv (responder, &m, sizeof(remote_char_t), 0);
-        assert(recv != -1);
+        assert(recv != -1);        
 
-        if (m.nChars + total_roaches > max_roaches && m.msg_type == 0) {
-            ok = 0;
-            send = zmq_send (responder, &ok, sizeof(int), 0);
-            assert(send != -1);
-            ok = 1;
-            continue;
-        }
-        else if (m.msg_type == 2) {
-            if (total_lizards + 1 > MAX_LIZARDS) {
-                ok = (int) '?'; // in case the pool is full of lizards
+        if(m.msg_type == 0) {
+            // testing if roach is valid
+            if (m.nChars + total_roaches > max_roaches) {
+                ok = 0;
                 send = zmq_send (responder, &ok, sizeof(int), 0);
                 assert(send != -1);
                 ok = 1;
                 continue;
             }
-            else {
-                index_of_position_to_insert = -1;
-                for (jj = 0; jj < MAX_LIZARDS; jj++) {
-                    if (!client_lizards[jj].valid) {
-                        index_of_position_to_insert = jj;
-                        break;
-                    }
+            // check if new client id is already in use
+            for (int iii = 0; iii < n_clients_roaches; iii++) {
+                if (client_roaches[iii].id == m.id) {
+                    ok = (int) '?';
+                    send = zmq_send (responder, &ok, sizeof(int), 0);
+                    assert(send != -1);
+                    break;
                 }
-                ok = (int) 'a' + index_of_position_to_insert;
-
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+            }
+            if (ok == (int) '?') {
                 ok = 1;
+                continue;
+            }
+            // check if new client id is already in use
+            for (int iii = 0; iii < MAX_LIZARDS; iii++) {
+                if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
+                    ok = (int) '?';
+                    send = zmq_send (responder, &ok, sizeof(int), 0);
+                    assert(send != -1);
+                    break;
+                }
+            }
+            if (ok == (int) '?') {
+                ok = 1;
+                continue;
             }
             
+            send = zmq_send (responder, &ok, sizeof(int), 0);
+            assert(send != -1);
+            ok = 1;
             
-        }
-        else if (m.msg_type != 3) {
-            // if (m.msg_type == 0 || m.msg_type == 2) {
-            //     // check if new client id is already in use
-            //     for (int iii = 0; iii < n_clients_roaches; iii++) {
-            //         if (client_roaches[iii].id == m.id) {
-            //             ok = (int) '?';
-            //             send = zmq_send (responder, &ok, sizeof(int), 0);
-            //             assert(send != -1);
-            //             break;
-            //         }
-            //     }
-            //     // check if new client id is already in use
-            //     for (int iii = 0; iii < MAX_LIZARDS; iii++) {
-            //         if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
-            //             ok = (int) '?';
-            //             send = zmq_send (responder, &ok, sizeof(int), 0);
-            //             assert(send != -1);
-            //             break;
-            //         }
-            //     }
-            //     if (ok == (int) '?') {
-            //         ok = 1;
-            //         continue;
-            //     }
-            // }
-            // else {
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
-            // }
-            
-        }
-        
-        ok = 1;
-
-        if(m.msg_type == 0) {
-
             client_roaches[n_clients_roaches].id = m.id;
             client_roaches[n_clients_roaches].nChars = m.nChars;
 
@@ -704,6 +676,9 @@ int main() {
 
         }
         else if (m.msg_type == 1){
+            send = zmq_send (responder, &ok, sizeof(int), 0);
+            assert(send != -1);
+            ok = 1;
 
             uint32_t index_client_roaches_id = 0;
 
@@ -753,6 +728,57 @@ int main() {
             }
         }
         else if (m.msg_type == 2) {
+
+            // check if lizard is valid
+            if (total_lizards + 1 > MAX_LIZARDS) {
+                ok = (int) '?'; // in case the pool is full of lizards
+                send = zmq_send (responder, &ok, sizeof(int), 0);
+                assert(send != -1);
+                ok = 1;
+                continue;
+            }
+            // check if new client id is already in use
+            for (int iii = 0; iii < n_clients_roaches; iii++) {
+                if (client_roaches[iii].id == m.id) {
+                    ok = (int) '?';
+                    send = zmq_send (responder, &ok, sizeof(int), 0);
+                    assert(send != -1);
+                    break;
+                }
+            }
+            if (ok == (int) '?') {
+                ok = 1;
+                continue;
+            }
+            // check if new client id is already in use
+            for (int iii = 0; iii < MAX_LIZARDS; iii++) {
+                if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
+                    ok = (int) '?';
+                    send = zmq_send (responder, &ok, sizeof(int), 0);
+                    assert(send != -1);
+                    break;
+                }
+            }
+            if (ok == (int) '?') {
+                ok = 1;
+                continue;
+            }
+
+
+
+            index_of_position_to_insert = -1;
+            for (jj = 0; jj < MAX_LIZARDS; jj++) {
+                if (!client_lizards[jj].valid) {
+                    index_of_position_to_insert = jj;
+                    break;
+                }
+            }
+            ok = (int) 'a' + index_of_position_to_insert;
+
+            send = zmq_send (responder, &ok, sizeof(int), 0);
+            assert(send != -1);
+            ok = 1;
+
 
             client_lizards[index_of_position_to_insert].id = m.id;
             client_lizards[index_of_position_to_insert].score = 0;
@@ -856,6 +882,10 @@ int main() {
             }
         }
         else if(m.msg_type == 4){
+            send = zmq_send (responder, &ok, sizeof(int), 0);
+            assert(send != -1);
+            ok = 1;
+
             uint32_t index_client_lizards_id = 0;
 
             for(int jjj = 0; jjj < MAX_LIZARDS; jjj++) {

@@ -1,5 +1,5 @@
 #include <ncurses.h>
-#include "remote-char.h"
+#include "auxiliar.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -11,12 +11,20 @@
 #include <stdio.h>
 #include <assert.h>
 
+void *context;
+void *requester;
+
 uint32_t hash_function(const char *str) {
     uint32_t hash = 0;
     while (*str) {
         hash = (hash * 31) ^ (uint32_t)(*str++);
     }
     return hash;
+}
+
+void free_exit_l() {
+    zmq_close (requester);
+    zmq_ctx_destroy (context);
 }
 
 
@@ -49,8 +57,8 @@ int main(int argc, char *argv[]) {
 
     sprintf(full_address, "tcp://%s:%d", server_address, port);
  
-    void *context = zmq_ctx_new ();
-    void *requester = zmq_socket (context, ZMQ_REQ);
+    context = zmq_ctx_new ();
+    requester = zmq_socket (context, ZMQ_REQ);
     assert(requester != NULL);
     int rc = zmq_connect (requester, full_address);
     assert(rc == 0);
@@ -76,6 +84,7 @@ int main(int argc, char *argv[]) {
     
     if(char_ok == '?') {
         printf("Connection failed\n");
+        free_exit_l();
         exit(0);
     }
 
@@ -144,6 +153,8 @@ int main(int argc, char *argv[]) {
             assert(recv != -1);
 
             if(my_score == -1) { //The request was not fullfilled
+                printf("Connection failed\n");
+                free_exit_l();
                 exit(0);
             }
 
@@ -156,8 +167,7 @@ int main(int argc, char *argv[]) {
     
     
   	endwin();			    /* End curses mode */
-    zmq_close (requester);
-    zmq_ctx_destroy (context);
+    free_exit_l();
 
 	return 0;
 }

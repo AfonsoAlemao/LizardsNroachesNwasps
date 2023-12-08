@@ -1,4 +1,4 @@
-#include "remote-char.h"
+#include "auxiliar.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,10 +14,19 @@
 
 void *context;
 void *requester;
+char *roaches;
+
+void *free_safe_r (void *aux) {
+    if (aux != NULL) {
+        free(aux);
+    }
+    return NULL;
+}
 
 void free_exit_r() {
     zmq_close (requester);
     zmq_ctx_destroy (context);
+    free_safe_r(roaches);
 }
 
 uint32_t hash_function(const char *str) {
@@ -30,7 +39,6 @@ uint32_t hash_function(const char *str) {
 
 int main(int argc, char *argv[]) {
     int nRoaches, sleep_delay;
-    char *roaches;
     char full_address[60], id_string[60];
     int ok = 0;
     size_t send, recv;
@@ -82,7 +90,7 @@ int main(int argc, char *argv[]) {
     if (roaches == NULL) {
         fprintf(stderr, "Error allocating memory\n");
         free_exit_r();
-        exit(1);
+        exit(0);
     }
     
     // send connection message
@@ -109,6 +117,7 @@ int main(int argc, char *argv[]) {
     
     if(char_ok == '?') {
         printf("Connection failed\n");
+        free_exit_r();
         exit(0);
     }
     
@@ -117,7 +126,7 @@ int main(int argc, char *argv[]) {
     
     if(ok == 0) { 
         printf("The request was not fullfilled\n");
-        free(roaches);
+        free_exit_r();
         exit(0);
     }
 
@@ -146,17 +155,14 @@ int main(int argc, char *argv[]) {
 
         if(ok == 0) { 
             printf("The request was not fullfilled\n");
-            free(roaches);
+            free_exit_r();
             exit(0);
         }
 
         ok = 0;
 
     }
-
-    zmq_close (requester);
-    zmq_ctx_destroy (context);
-    free(roaches);
+    free_exit_r();
  
 	return 0;
 }

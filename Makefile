@@ -9,7 +9,7 @@ LIBS = -lzmq -lncurses
 all: lizardsNroaches_server roaches_client lizard_client display_app
 
 # Rule for building lizardsNroaches_server
-lizardsNroaches_server: lizardsNroaches-server.c lists.o fifo.o zhelpers.h remote-char.h lists.h fifo.h
+lizardsNroaches_server: lizardsNroaches-server.c lists.o fifo.o zhelpers.h auxiliar.h lists.h fifo.h
 	$(CC) $(CFLAGS) -o lizardsNroaches_server lizardsNroaches-server.c lists.o fifo.o $(LIBS)
 
 # Rule for compiling lists.c to an object file
@@ -21,15 +21,15 @@ fifo.o: fifo.c fifo.h
 	$(CC) $(CFLAGS) -c fifo.c
 
 # Rule for building roaches_client
-roaches_client: roaches-client.c zhelpers.h remote-char.h
+roaches_client: roaches-client.c zhelpers.h auxiliar.h
 	$(CC) $(CFLAGS) -o roaches_client roaches-client.c $(LIBS)
 
 # Rule for building lizard_client
-lizard_client: lizard-client.c zhelpers.h remote-char.h
+lizard_client: lizard-client.c zhelpers.h auxiliar.h
 	$(CC) $(CFLAGS) -o lizard_client lizard-client.c $(LIBS)
 
 # Rule for display-app
-display_app: display-app.c zhelpers.h remote-char.h
+display_app: display-app.c zhelpers.h auxiliar.h
 	$(CC) $(CFLAGS) -o display_app display-app.c $(LIBS)
 
 # Rule for cleaning up the build artifacts

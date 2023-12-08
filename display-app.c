@@ -1,6 +1,6 @@
 
 #include <ncurses.h>
-#include "remote-char.h"
+#include "auxiliar.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -17,6 +17,10 @@
 WINDOW *my_win;
 WINDOW *debug_win;
 WINDOW *stats_win;
+
+char *password;
+void *context;
+void *subscriber;
 
 void *free_safe_d (void *aux) {
     if (aux != NULL) {
@@ -37,6 +41,12 @@ void display_stats(pos_lizards *client_lizards) {
             i++;
         }
     }
+}
+
+void free_exit_display() {
+    zmq_close (subscriber);
+    zmq_ctx_destroy (context);
+    free_safe_d(password);
 }
 
 int main(int argc, char *argv[]) {
@@ -69,14 +79,14 @@ int main(int argc, char *argv[]) {
     msg msg_subscriber;
     int new = 0, j = 0;
 
-    void *context = zmq_ctx_new ();
+    context = zmq_ctx_new ();
     assert(context != NULL);
-    void *subscriber = zmq_socket (context, ZMQ_SUB);
+    subscriber = zmq_socket (context, ZMQ_SUB);
     zmq_connect (subscriber, full_address);
     assert(subscriber != NULL);
     
     struct termios oldt, newt;
-    char *password = NULL;
+    password = NULL;
     size_t bufsize = 100;
     int ch;
 
@@ -88,8 +98,9 @@ int main(int argc, char *argv[]) {
     // Allocate memory for the password
     password = (char *)malloc(bufsize * sizeof(char));
     if(password == NULL) {
-        perror("Unable to allocate memory");
-        exit(1);
+        fprintf(stderr, "Unable to allocate memory\n");
+        free_exit_display();
+        exit(0);
     }
 
     // Turn off echoing of characters
@@ -125,25 +136,26 @@ int main(int argc, char *argv[]) {
     // creates a window for debug
     debug_win = newwin(20, 100, WINDOW_SIZE + 1 + MAX_LIZARDS + 1, 0);
 
-    mvwprintw(stats_win, 1, 1, "pass: %s", password);
-    wrefresh(stats_win);
+    // mvwprintw(stats_win, 1, 1, "pass: %s", password);
+    // wrefresh(stats_win);
 
     while (1)
     {
-        mvwprintw(stats_win, 2, 1, "chegueiaqui");
-        wrefresh(stats_win);
+        // mvwprintw(stats_win, 2, 1, "chegueiaqui");
+        // wrefresh(stats_win);
         char *type = s_recv (subscriber);
         if(strcmp(type, password) != 0 ) {
             printf("Wrong password\n");
+            free_exit_display();
             exit(0);
         }
         zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
 
-        mvwprintw(stats_win, 2, 1, "Acertaste a pass: %s", type);
-        wrefresh(stats_win);
+        // mvwprintw(stats_win, 2, 1, "Acertaste a pass: %s", type);
+        // wrefresh(stats_win);
 
-        mvwprintw(stats_win, 3, 1, "x=%d, y=%d", msg_subscriber.x_upd, msg_subscriber.y_upd);
-        wrefresh(stats_win);
+        // mvwprintw(stats_win, 3, 1, "x=%d, y=%d", msg_subscriber.x_upd, msg_subscriber.y_upd);
+        // wrefresh(stats_win);
 
 
         if(new == 0) {
@@ -173,10 +185,7 @@ int main(int argc, char *argv[]) {
         free_safe_d(type);		
     }
   	endwin();			/* End curses mode		  */
-    zmq_close (subscriber);
-    zmq_ctx_destroy (context);
-    // Free the allocated memory
-    free_safe_d(password);
+    free_exit_display();
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 {
   "files.associations": {
-    "remote-char.h": "c",
+    "auxiliar.h": "c",
     "types.h": "c",
     "string": "c",
     "array": "c",

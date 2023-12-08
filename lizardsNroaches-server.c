@@ -15,7 +15,7 @@
 
 #include "lists.h"
 #include "fifo.h"
-#include "remote-char.h"
+#include "auxiliar.h"
 
 WINDOW *my_win;
 WINDOW *debug_win;
@@ -257,6 +257,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
     new_data.index_client = index_client;
     new_data.index_roaches = index_roaches;
     size_t send1, send2;
+    bool check;
 
     if (ch == ' ') {
         // delete from list position xy in field
@@ -294,7 +295,12 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
     }
     else {
         // add to list position xy in field    
-        insertBegin(&head, new_data);
+        check = insertBegin(&head, new_data);
+        if (!check) {
+            fprintf(stderr, "Memory allocation failed\n");
+            free_exit();
+            exit(0);
+        }
 
         if (head != NULL && element_type == 0) {
             ch = check_prioritary_element(head);
@@ -574,6 +580,7 @@ void free_exit() {
     zmq_ctx_destroy (context);
     client_roaches = free_safe(client_roaches);
     free3DArray(field);
+    password = free_safe(password);
 }
 
 int main() {
@@ -623,8 +630,9 @@ int main() {
     // Allocate memory for the password
     password = (char *)malloc(bufsize * sizeof(char));
     if(password == NULL) {
-        perror("Unable to allocate memory");
-        exit(1);
+        fprintf(stderr, "Unable to allocate memory\n");
+        free_exit();
+        exit(0);
     }
 
     // Turn off echoing of characters
@@ -663,8 +671,8 @@ int main() {
     // creates a window for debug
     debug_win = newwin(20, 100, WINDOW_SIZE + 1 + MAX_LIZARDS + 1, 0);
 
-    mvwprintw(stats_win, 1, 1, "pass: %s", password);
-    wrefresh(stats_win);
+    // mvwprintw(stats_win, 1, 1, "pass: %s", password);
+    // wrefresh(stats_win);
     
     // mvwprintw(debug_win, 1, 1, "Your text here");
     // wrefresh(debug_win);
@@ -688,8 +696,6 @@ int main() {
         free_exit();
         exit(0);
     }
-
-    
 
     srand(time(NULL));
 
@@ -1025,15 +1031,7 @@ int main() {
         	
     }
     /* End curses mode */
-    delwin(stats_win);
-    delwin(debug_win);
-    delwin(my_win);
-  	endwin();
-    zmq_close(responder);
-    zmq_close(publisher);
-    zmq_ctx_destroy (context);
-    client_roaches = free_safe(client_roaches);
-    free3DArray(field);
+    free_exit();
 
 	return 0;
 }

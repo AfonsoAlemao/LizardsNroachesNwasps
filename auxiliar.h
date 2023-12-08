@@ -1,3 +1,6 @@
+#ifndef AUX_H
+#define AUX_H
+
 #include <stdint.h>
 #include <time.h>
 #include <stdbool.h>
@@ -62,4 +65,5 @@ typedef struct msg
     /* data */
 }msg;
 
+#endif
 

@@ -481,6 +481,8 @@ void display_stats() {
         mvwprintw(stats_win, j, 1, "\t\t\t\t\t");
         wrefresh(stats_win);
         if (client_lizards[j].valid) {
+            // mvwprintw(stats_win, i, 1, "j: %d, : %lf", j, client_lizards[j].id, client_lizards[j].char_data.ch, client_lizards[j].valid);
+            // wrefresh(stats_win);
             mvwprintw(stats_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
             wrefresh(stats_win);
             i++;
@@ -621,10 +623,10 @@ int main() {
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
     // Read password
-    printw("Enter password: ");
+    printw("Display-app pass: ");
     refresh();
 
-    int i = 0;
+    int i = 0, j = 0;
     while(i < 99 && (ch = getch()) != '\n') {
         password[i++] = ch;
         // addch('*'); // Display an asterisk for each character
@@ -650,12 +652,6 @@ int main() {
     // creates a window for debug
     debug_win = newwin(20, 100, WINDOW_SIZE + 1 + MAX_LIZARDS + 1, 0);
 
-    // mvwprintw(stats_win, 1, 1, "pass: %s", password);
-    // wrefresh(stats_win);
-    
-    // mvwprintw(debug_win, 1, 1, "Your text here");
-    // wrefresh(debug_win);
-
     int max_roaches = floor(((WINDOW_SIZE - 2)*(WINDOW_SIZE - 2))/3);
     int n_clients_roaches = 0;
     int total_roaches = 0;
@@ -677,6 +673,21 @@ int main() {
     }
 
     srand(time(NULL));
+
+    for (i = 0; i < MAX_LIZARDS; i++) {
+        client_lizards[i].id = -1;
+        client_lizards[i].valid = false;
+        client_lizards[i].score = 0;
+        client_lizards[i].char_data.ch = '?';
+        
+    }
+    for (i = 0; i < max_roaches; i++) {
+        client_roaches[i].id = -1;
+        client_roaches[i].nChars = 0;
+        for (j = 0; j < MAX_ROACHES_PER_CLIENT; j++) {
+            client_roaches[i].active[j] = false;
+        } 
+    }
 
     while (1) {
 
@@ -866,7 +877,6 @@ int main() {
             assert(send != -1);
             ok = 1;
 
-
             client_lizards[index_of_position_to_insert].id = m.id;
             client_lizards[index_of_position_to_insert].score = 0;
             client_lizards[index_of_position_to_insert].valid = true;
@@ -953,10 +963,9 @@ int main() {
                     field[pos_x_lizards][pos_y_lizards] = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
                         index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
                     
-
                     client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
 
-                    if (client_lizards[index_client].score >= 50 && end_game == 0) {
+                    if (client_lizards[index_client].score >= POINTS_TO_WIN && end_game == 0) {
                         // new tail
                         end_game = 1;
                         tail(m.direction[0], pos_x_lizards, pos_y_lizards, false, 
@@ -991,8 +1000,6 @@ int main() {
                 }
             }
 
-            
-
             pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
             pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
             ch = client_lizards[index_client_lizards_id].char_data.ch;
@@ -1012,7 +1019,6 @@ int main() {
             client_lizards[index_client_lizards_id].valid = false;
             total_lizards--;
 
-            
         }
 
         display_stats();

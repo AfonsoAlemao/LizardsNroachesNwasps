@@ -25,6 +25,10 @@ fifo_element *roaches_killed;
 pos_roaches *client_roaches;
 pos_lizards client_lizards[MAX_LIZARDS];
 
+#define MAX_PORT_STR_LEN 6 // Max port number "65535" plus null terminator
+#define ADDRESS_PREFIX_LEN 10 // Length of "tcp://*:" including null terminator
+#define FULL_ADDRESS_LEN (MAX_PORT_STR_LEN + ADDRESS_PREFIX_LEN)
+
 void *context;
 void *responder;
 void *publisher;
@@ -531,7 +535,7 @@ void ressurect_roaches() {
                 // mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
                 // temp->data.index_client, temp->data.index_roaches);
                 // wrefresh(debug_win);
-                kkkk+=1;
+                kkkk += 1;
                 temp = temp->next;
             }
 
@@ -603,16 +607,75 @@ int main() {
         exit(0);
     }
 
+    //
+
+    char port_display[MAX_PORT_STR_LEN], port_client[MAX_PORT_STR_LEN];
+    char full_address_display[FULL_ADDRESS_LEN], full_address_client[FULL_ADDRESS_LEN];
+
+    // Ask the user to enter the port for the client app
+    printf("Port for client app: ");
+    if (fgets(port_client, sizeof(port_client), stdin) != NULL) {
+        // Remove the newline character from the end, if it exists
+        port_client[strcspn(port_client, "\n")] = 0;
+
+        // Display the entered string
+        printf("Port Client: %s\n", port_client);
+    } else {
+        // Handle input error
+        fprintf(stderr, "Error reading input.\n");
+        free_exit();
+        exit(EXIT_FAILURE);
+    }
+
+    // Validate the port number
+    if (strlen(port_client) > 5 || atoi(port_client) <= 0 || atoi(port_client) > 65535) {
+        fprintf(stderr, "Invalid port number. Please provide a number between 1 and 65535.\n");
+        free_exit();
+        exit(EXIT_FAILURE);
+    }
+
+    // Format the full address for the client
+    snprintf(full_address_client, sizeof(full_address_client), "tcp://*:%s", port_client);
+
+    // Ask the user to enter the port for the display app
+    printf("Port for display app: ");
+    if (fgets(port_display, sizeof(port_display), stdin) != NULL) {
+        // Remove the newline character from the end, if it exists
+        port_display[strcspn(port_display, "\n")] = 0;
+
+        // Display the entered string
+        printf("Port Display: %s\n", port_display);
+    } else {
+        // Handle input error
+        fprintf(stderr, "Error reading input.\n");
+        free_exit();
+        exit(EXIT_FAILURE);
+    }
+
+    // Validate the port number
+    if (strlen(port_display) > 5 || atoi(port_display) <= 0 || atoi(port_display) > 65535) {
+        fprintf(stderr, "Invalid port number. Please provide a number between 1 and 65535.\n");
+        free_exit();
+        exit(EXIT_FAILURE);
+    }
+
+    // Format the full address for the display
+    snprintf(full_address_display, sizeof(full_address_display), "tcp://*:%s", port_display);
+
+    // At this point, the full_address_client and full_address_display contain the formatted strings
+    printf("Full address for client app: %s\n", full_address_client);
+    printf("Full address for display app: %s\n", full_address_display);
+
     context = zmq_ctx_new ();
     assert(context != NULL);
     responder = zmq_socket (context, ZMQ_REP);
     assert(responder != NULL);
-    int rc = zmq_bind (responder, "tcp://*:5560");
+    int rc = zmq_bind (responder, full_address_client);
     assert (rc == 0);
 
     publisher = zmq_socket (context, ZMQ_PUB);
     assert(publisher != NULL);
-    int rc2 = zmq_bind (publisher, "tcp://*:5558");
+    int rc2 = zmq_bind (publisher, full_address_display);
     assert(rc2 == 0);
 
     

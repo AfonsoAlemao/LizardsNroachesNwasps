@@ -76,7 +76,7 @@ int main()
 
 	initscr();		    	
 	cbreak();				
-    keypad(stdscr, TRUE);   
+    keypad(stdscr, true);   
 	noecho();			    
 
     /* creates a window and draws a border */

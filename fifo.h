@@ -1,6 +1,8 @@
 #ifndef fifo_H
 #define fifo_H
 
+#include <stdbool.h>
+
 typedef struct dead_roach 
 {
     int index_client;  // index in table of clients with roaches 
@@ -25,10 +27,10 @@ typedef struct fifo_element {
 fifo_element* createfifo_element(dead_roach data);
 
 // Function to insert a new fifo_element at the end
-void insertEnd_fifo(fifo_element** head, dead_roach data);
+bool insertEnd_fifo(fifo_element** head, dead_roach data);
 
 // Function to push a new fifo_element onto the stack
-void push_fifo(fifo_element** head, dead_roach data);
+bool push_fifo(fifo_element** head, dead_roach data);
 
 // Function to pop a fifo_element from the stack
 void pop_fifo(fifo_element** head);

@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     
 	initscr();			    /* Start curses mode */
 	cbreak();				/* Line buffering disabled */
-	keypad(stdscr, TRUE);	/* We get F1, F2 etc.. */
+	keypad(stdscr, true);	/* We get F1, F2 etc.. */
 	noecho();			    /* Don't echo() while we do getch */
 
     mvprintw(2, 0, "You are lizard %c", char_ok);

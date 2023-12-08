@@ -1,6 +1,8 @@
 #ifndef LINKEDLIST_H
 #define LINKEDLIST_H
 
+#include <stdbool.h>
+
 typedef struct square 
 {
     int index_client;  // index in table of clients with roaches or in table of lizards 
@@ -35,20 +37,11 @@ typedef struct list_element {
 // Function to create a new list_element
 list_element* createlist_element(square data);
 
-// Function to insert a new list_element at the end
-void insertEnd(list_element** head, square data);
-
 // Function to insert a new list_element at the beginning
-void insertBegin(list_element** head, square data);
+bool insertBegin(list_element** head, square data);
 
 // Function to delete a list_element with a given value
 void deletelist_element(list_element** head, square data);
-
-// Function to push a new list_element onto the stack
-void push(list_element** head, square data);
-
-// Function to pop a list_element from the stack
-void pop(list_element** head);
 
 // Function to print the linked list
 void printList(list_element* head);

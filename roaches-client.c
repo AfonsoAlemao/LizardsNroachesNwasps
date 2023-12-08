@@ -12,6 +12,14 @@
 #include <stdio.h>
 #include <assert.h> 
 
+void *context;
+void *requester;
+
+void free_exit_r() {
+    zmq_close (requester);
+    zmq_ctx_destroy (context);
+}
+
 uint32_t hash_function(const char *str) {
     uint32_t hash = 0;
     while (*str) {
@@ -50,8 +58,8 @@ int main(int argc, char *argv[]) {
 
     sprintf(full_address, "tcp://%s:%d", server_address, port);
 
-    void *context = zmq_ctx_new ();
-    void *requester = zmq_socket (context, ZMQ_REQ);
+    context = zmq_ctx_new ();
+    requester = zmq_socket (context, ZMQ_REQ);
     assert(requester != NULL);
     int rc = zmq_connect (requester, full_address);
     assert(rc == 0);
@@ -71,6 +79,11 @@ int main(int argc, char *argv[]) {
 
     // Create a character array of size n
     roaches = (char *)calloc(nRoaches, sizeof(char));
+    if (roaches == NULL) {
+        fprintf(stderr, "Error allocating memory\n");
+        free_exit_r();
+        exit(1);
+    }
     
     // send connection message
     remote_char_t m;

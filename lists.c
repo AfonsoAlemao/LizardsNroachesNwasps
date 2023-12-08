@@ -12,33 +12,27 @@ void *free_safe2 (void *aux) {
 // Function to create a new list_element
 list_element* createlist_element(square data) {
     list_element* newlist_element = (list_element*)malloc(sizeof(list_element));
+    if (newlist_element == NULL) {
+        printf("Error creating a new list_element.\n");
+        return NULL;
+    }
     newlist_element->data = data;
     newlist_element->next = NULL;
     return newlist_element;
 }
 
-// Function to insert a new list_element at the end
-void insertEnd(list_element** head, square data) {
-    list_element* newlist_element = createlist_element(data);
-    if (*head == NULL) {
-        *head = newlist_element;
-        return;
-    }
-
-    list_element* temp = *head;
-    while (temp->next != NULL) {
-        temp = temp->next;
-    }
-    temp->next = newlist_element;
-}
 
 // Function to insert a new list_element at the beginning
-void insertBegin(list_element** head, square data) {
+bool insertBegin(list_element** head, square data) {
     list_element* newlist_element = createlist_element(data);
+    if (newlist_element == NULL) {
+        return false;
+    }
+    
     newlist_element->next = *head;
     *head = newlist_element;
 
-    return;
+    return true;
 }
 
 int compare(square data1, square data2) {
@@ -49,7 +43,6 @@ int compare(square data1, square data2) {
     }
     return 1;
 }
-
 
 
 void deletelist_element(list_element** head, square data) {
@@ -79,23 +72,6 @@ void deletelist_element(list_element** head, square data) {
     temp = free_safe2(temp);
 
     return;
-}
-
-// Function to push a new list_element onto the stack
-void push(list_element** head, square data) {
-    insertBegin(head, data);
-}
-
-
-// Function to pop a list_element from the stack
-void pop(list_element** head) {
-    if (*head == NULL) {
-        return;
-    }
-
-    list_element* temp = *head;
-    *head = temp->next;
-    temp = free_safe2(temp);
 }
 
 // Function to print the linked list

@@ -30,7 +30,7 @@ pos_lizards client_lizards[MAX_LIZARDS];
 
 void new_position(int* x, int *y, direction_t direction);
 int find_ch_info(ch_info_t char_data[], int n_char, int ch);
-void split_health(list_element *head, int index_client, int element_type);
+void split_health(list_element *head, int index_client);
 void search_and_destroy_roaches(list_element *head, int index_client);
 list_element *display_in_field(char ch, int x, int y, int index_client, int index_roaches, int element_type, list_element *head);
 void tail(direction_t direction, int x, int y, bool delete, int index_client);
@@ -79,30 +79,27 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
     return -1;
 }
 
-void split_health(list_element *head, int index_client, int element_type) {
+void split_health(list_element *head, int index_client) {
     // having a tail, we will iterate through the list searching for heads
     list_element *current = head;
-    // list_element *nextNode;
-    double split = 0;
-    double sum = 0;
+    list_element *nextNode;
+    double avg = 0;
 
-    sum = client_lizards[index_client].score;
+    avg = client_lizards[index_client].score;
 
-    // while (current != NULL) {
-    //     if (element_type == 1) {    
-    //         if (current->data.element_type == 1 && current->data.index_client != index_client) { // head of lizard
-    //             sum += client_lizards[current->data.index_client].score;
-    //         }
-    //     }
-    //     nextNode = current->next;
-    //     current = nextNode;
-    // }
-    sum += client_lizards[current->data.index_client].score;
+    while (current != NULL) {
+        if (current->data.element_type == 1) { // head of lizard
+            avg += client_lizards[current->data.index_client].score;
+            break;
+        }
+        nextNode = current->next;
+        current = nextNode;
+    }
+    
+    avg = avg / 2;
 
-    split = sum / 2;
-
-    client_lizards[index_client].score = split;
-    client_lizards[current->data.index_client].score = split;
+    client_lizards[index_client].score = avg;
+    client_lizards[current->data.index_client].score = avg;
     
     return;
 }
@@ -294,15 +291,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
         //      - uma tail: repartir os pontos de ambos os lizards
         if (element_type == 1) {
             search_and_destroy_roaches(head, index_client);
-            // split_health(head, index_client, element_type);
         }
-
-        // se for uma tail:
-        //  verificar se coincide com:
-        //      - uma head de um lizard: repartir os pontos de ambos os lizards
-        // if (element_type == 0) {
-        //     split_health(head, index_client, element_type);
-        // }
     }
     
 
@@ -609,6 +598,7 @@ int main() {
 
         recv = zmq_recv (responder, &m, sizeof(remote_char_t), 0);
         assert(recv != -1);
+
         if (m.nChars + total_roaches > max_roaches && m.msg_type == 0) {
             ok = 0;
             send = zmq_send (responder, &ok, sizeof(int), 0);
@@ -642,13 +632,41 @@ int main() {
             
         }
         else if (m.msg_type != 3) {
-            send = zmq_send (responder, &ok, sizeof(int), 0);
-            assert(send != -1);
+            // if (m.msg_type == 0 || m.msg_type == 2) {
+            //     // check if new client id is already in use
+            //     for (int iii = 0; iii < n_clients_roaches; iii++) {
+            //         if (client_roaches[iii].id == m.id) {
+            //             ok = (int) '?';
+            //             send = zmq_send (responder, &ok, sizeof(int), 0);
+            //             assert(send != -1);
+            //             break;
+            //         }
+            //     }
+            //     // check if new client id is already in use
+            //     for (int iii = 0; iii < MAX_LIZARDS; iii++) {
+            //         if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
+            //             ok = (int) '?';
+            //             send = zmq_send (responder, &ok, sizeof(int), 0);
+            //             assert(send != -1);
+            //             break;
+            //         }
+            //     }
+            //     if (ok == (int) '?') {
+            //         ok = 1;
+            //         continue;
+            //     }
+            // }
+            // else {
+                send = zmq_send (responder, &ok, sizeof(int), 0);
+                assert(send != -1);
+            // }
+            
         }
         
         ok = 1;
 
         if(m.msg_type == 0) {
+
             client_roaches[n_clients_roaches].id = m.id;
             client_roaches[n_clients_roaches].nChars = m.nChars;
 
@@ -778,7 +796,7 @@ int main() {
         else if(m.msg_type == 3){
             uint32_t index_client_lizards_id = 0;
 
-            for(int jjj = 0; jjj < total_lizards;jjj++) {
+            for(int jjj = 0; jjj < MAX_LIZARDS;jjj++) {
                 if(client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
@@ -819,22 +837,17 @@ int main() {
                     client_lizards[index_client_lizards_id].char_data.pos_x = pos_x_lizards;
                     client_lizards[index_client_lizards_id].char_data.pos_y = pos_y_lizards;
 
-                    // index_client = index_client_lizards_id;
-                    // index_roaches = -1;  
-                    // element_type = 1;
-                    /* draw mark on new position */
                     field[pos_x_lizards][pos_y_lizards] = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
                         index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
                     
 
                     client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
                 }
-                else if (check_head_in_square(field[pos_x_lizards_aux][pos_y_lizards_aux]) == TRUE) {
+                else {
                     // mvwprintw(debug_win, 1, 0, "%d", field[pos_x_lizards_aux][pos_y_lizards_aux]->data.index_client);
                     // wrefresh(debug_win);
                     
-                    split_health(field[pos_x_lizards_aux][pos_y_lizards_aux], index_client_lizards_id, 1);
-                    
+                    split_health(field[pos_x_lizards_aux][pos_y_lizards_aux], index_client_lizards_id);
                 }
                 
                 send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(double), 0);
@@ -845,12 +858,14 @@ int main() {
         else if(m.msg_type == 4){
             uint32_t index_client_lizards_id = 0;
 
-            for(int jjj = 0; jjj < total_lizards; jjj++) {
+            for(int jjj = 0; jjj < MAX_LIZARDS; jjj++) {
                 if(client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
                 }
             }
+
+            
 
             pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
             pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
@@ -870,6 +885,8 @@ int main() {
 
             client_lizards[index_client_lizards_id].valid = FALSE;
             total_lizards--;
+
+            
         }
 
         display_stats();

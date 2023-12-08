@@ -90,6 +90,14 @@ int main(int argc, char *argv[]) {
     assert(send != -1);
     recv = zmq_recv (requester, &ok, sizeof(int), 0);
     assert(recv != -1);
+
+    char char_ok;
+    char_ok = (char) ok;
+    
+    if(char_ok == '?') {
+        printf("Connection failed\n");
+        exit(0);
+    }
     
     /* for example when number of roaches in the 
     server does not allow the addition of these number of roaches */

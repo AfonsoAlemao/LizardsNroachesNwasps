@@ -14,6 +14,7 @@
 void *context;
 void *requester;
 
+/* Convert each string in a unique ID */
 uint32_t hash_function(const char *str) {
     uint32_t hash = 0;
     while (*str) {
@@ -22,39 +23,38 @@ uint32_t hash_function(const char *str) {
     return hash;
 }
 
+/* Free allocated memory if an error occurs */
 void free_exit_l() {
     zmq_close (requester);
     zmq_ctx_destroy (context);
 }
 
-
 int main(int argc, char *argv[]) {
+    char *server_address, full_address[60], id_string[60], char_ok;
+    int port, ok = 0, n = 0, disconnect = 0, key;
+    uint32_t id_int;
+    remote_char_t m;
+    double my_score = 0;
+    size_t send, recv;
 
-
-    // Check if the correct number of arguments is provided
+    /* Check if the correct number of arguments is provided */
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <server-address> <port>\n", argv[0]);
         return 1;
     }
 
-    // Extract the server address and port number from the command line arguments
-    char *server_address = argv[1];
-    int port = atoi(argv[2]); // Convert the port number from string to integer
+    /* Extract the server address and port number from the command line arguments */
+    server_address = argv[1];
+    port = atoi(argv[2]); /* Convert the port number from string to integer */
 
-    // Check if the port number is valid
+    /* Check if the port number is valid */
     if (port <= 0 || port > 65535) {
         fprintf(stderr, "Invalid port number. Please provide a number between 1 and 65535.\n");
         return 1;
-    }
-
-    char full_address[60];
-    char id_string[60];
+    }    
 
     snprintf(id_string, sizeof(id_string), "%s:%s", server_address, argv[2]);
-    uint32_t id_int = hash_function(id_string);
-
-    printf("Unique ID: %u\n", id_int);
-
+    id_int = hash_function(id_string);
     sprintf(full_address, "tcp://%s:%d", server_address, port);
  
     context = zmq_ctx_new ();
@@ -63,32 +63,27 @@ int main(int argc, char *argv[]) {
     int rc = zmq_connect (requester, full_address);
     assert(rc == 0);
 
-    // send connection message
-    remote_char_t m;
+    /* Send connection message */
     m.msg_type = 2;
     m.nChars = 1;
-    int ok = 0;
-    char char_ok;
-    m.id = id_int;
+    m.id = id_int;    
 
-    double my_score = 0;
-
-    size_t send, recv;
-
+    /* Connection message */
     send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
     assert(send != -1);
     recv = zmq_recv (requester, &ok, sizeof(char), 0);
     assert(recv != -1);
 
+    /* From server response check connection success */
     char_ok = (char) ok;
-    
-    if(char_ok == '?') {
+    if (char_ok == '?') {
         printf("Connection failed\n");
         free_exit_l();
         exit(0);
     }
-
     ok = 0;
+
+    /* Assign character to lizard */
     m.ch[0] = char_ok;
     
 	initscr();			    /* Start curses mode */
@@ -98,42 +93,35 @@ int main(int argc, char *argv[]) {
 
     mvprintw(2, 0, "You are lizard %c", char_ok);
     
-    int n = 0;
-
-    // prepare the movement message
+    /* Lizard movement message type */
     m.msg_type = 3;
-    int disconnect = 0;
-    int key;
 
     do
     {
+        /* Get next movement from user */
     	key = getch();		
         n++;
         switch (key)
         {
         case KEY_LEFT:
             mvprintw(0,0,"%d :Left arrow is pressed ", n);
-            // prepare the movement message
             m.direction[0] = LEFT;
             break;
         case KEY_RIGHT:
             mvprintw(0,0,"%d :Right arrow is pressed", n);
-            // prepare the movement message
             m.direction[0] = RIGHT;
             break;
         case KEY_DOWN:
             mvprintw(0,0,"%d :Down arrow is pressed ", n);
-            // prepare the movement message
            m.direction[0] = DOWN;
             break;
         case KEY_UP:
             mvprintw(0,0,"%d :Up arrow is pressed   ", n);
-            // prepare the movement message
             m.direction[0] = UP;
             break;
         case 'q':
         case 'Q':
-            mvprintw(0,0,"Disconect                  ");
+            mvprintw(0,0,"Disconnect                 ");
             disconnect = 1;
             break;
         default:
@@ -141,32 +129,31 @@ int main(int argc, char *argv[]) {
             break;
         }
 
-        //TODO_10
-        //send the movement message
-        if(disconnect == 1) {
+        /* Send the movement message */
+        if (disconnect == 1) {
+            /* Message type for user disconnection */
             m.msg_type = 4;
         }
         if (key != 'x'){
+            /* Send movement to server */
             send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
             assert(send != -1);
             recv = zmq_recv (requester, &my_score, sizeof(double), 0);
             assert(recv != -1);
 
-            if(my_score == -1) { //The request was not fullfilled
+            if (my_score == -1) { /* The request was not fullfilled */
                 printf("Connection failed\n");
                 free_exit_l();
                 exit(0);
             }
 
+            /* From server response, update user score */
             mvprintw(4, 0, "Your score is %lf", my_score);
-
         }
-
-        refresh();			/* Print it on to the real screen */
-    }while(key != 27 && key != 'Q' && key != 'q');
+        refresh(); /* Print it on to the real screen */
+    } while(key != 27 && key != 'Q' && key != 'q');
     
-    
-  	endwin();			    /* End curses mode */
+  	endwin(); /* End curses mode */
     free_exit_l();
 
 	return 0;

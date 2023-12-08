@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "fifo.h"
 
-
 void *free_safe3 (void *aux) {
     if (aux != NULL) {
         free(aux);
@@ -10,7 +9,7 @@ void *free_safe3 (void *aux) {
     return NULL;
 }
 
-// Function to create a new fifo_element
+/* Function to create a new fifo_element */
 fifo_element* createfifo_element(dead_roach data) {
     fifo_element* newfifo_element = (fifo_element*)malloc(sizeof(fifo_element));
     if (newfifo_element == NULL) {
@@ -22,7 +21,7 @@ fifo_element* createfifo_element(dead_roach data) {
     return newfifo_element;
 }
 
-// Function to insert a new fifo_element at the end
+/* Function to insert a new fifo_element at the end */
 bool insertEnd_fifo(fifo_element** head, dead_roach data) {
     fifo_element* newfifo_element = createfifo_element(data);
     if (newfifo_element == NULL) {
@@ -51,7 +50,7 @@ int compare_fifo(dead_roach data1, dead_roach data2) {
     return 1;
 }
 
-// Function to push a new fifo_element onto the stack
+/* Function to push a new fifo_element onto the stack */
 bool push_fifo(fifo_element** head, dead_roach data) {
     if (insertEnd_fifo(head, data)) {
         return true;
@@ -60,7 +59,7 @@ bool push_fifo(fifo_element** head, dead_roach data) {
 }
 
 
-// Function to pop a fifo_element from the stack
+/* Function to pop a fifo_element from the stack */
 void pop_fifo(fifo_element** head) {
     if (*head == NULL) {
         return;
@@ -72,7 +71,7 @@ void pop_fifo(fifo_element** head) {
     return;
 }
 
-// Function to print the fifo
+/* Function to print the fifo */
 void printfifo(fifo_element* head) {
     fifo_element* temp = head;
     while (temp != NULL) {
@@ -84,7 +83,7 @@ void printfifo(fifo_element* head) {
     printf("\n");
 }
 
-// Function to free the memory allocated for the fifo
+/* Function to free the memory allocated for the fifo */
 void freefifo(fifo_element* head) {
     fifo_element* temp;
     while (head != NULL) {

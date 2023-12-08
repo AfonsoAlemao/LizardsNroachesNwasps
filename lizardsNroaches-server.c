@@ -26,7 +26,7 @@ fifo_element *roaches_killed;
 pos_roaches *client_roaches;
 pos_lizards client_lizards[MAX_LIZARDS];
 
-#define MAX_PORT_STR_LEN 6 // Max port number "65535" plus null terminator
+#define MAX_PORT_STR_LEN 6 /* Max port number "65535" plus null terminator */
 #define ADDRESS_PREFIX_LEN 10 // Length of "tcp://*:" including null terminator
 #define FULL_ADDRESS_LEN (MAX_PORT_STR_LEN + ADDRESS_PREFIX_LEN)
 
@@ -56,22 +56,22 @@ void new_position(int *x, int *y, direction_t direction){
     switch (direction) {
         case UP:
             (*x) --;
-            if(*x == 0)
+            if (*x == 0)
                 *x = 2;
             break;
         case DOWN:
             (*x) ++;
-            if(*x == WINDOW_SIZE-1)
+            if (*x == WINDOW_SIZE-1)
                 *x = WINDOW_SIZE-3;
             break;
         case LEFT:
             (*y) --;
-            if(*y ==0)
+            if (*y ==0)
                 *y = 2;
             break;
         case RIGHT:
             (*y) ++;
-            if(*y == WINDOW_SIZE-1)
+            if (*y == WINDOW_SIZE-1)
                 *y = WINDOW_SIZE-3;
             break;
         case NONE:
@@ -83,7 +83,7 @@ void new_position(int *x, int *y, direction_t direction){
 int find_ch_info(ch_info_t char_data[], int n_char, int ch){
 
     for (int i = 0 ; i < n_char; i++){
-        if(ch == char_data[i].ch){
+        if (ch == char_data[i].ch){
             return i;
         }
     }
@@ -91,7 +91,7 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
 }
 
 void split_health(list_element *head, int index_client) {
-    // having a tail, we will iterate through the list searching for heads
+    /* Having a tail, we will iterate through the list searching for heads */
     list_element *current = head;
     list_element *nextNode;
     double avg = 0;
@@ -99,7 +99,7 @@ void split_health(list_element *head, int index_client) {
     avg = client_lizards[index_client].score;
 
     while (current != NULL) {
-        if (current->data.element_type == 1) { // head of lizard
+        if (current->data.element_type == 1) { /* Head of lizard */
             avg += client_lizards[current->data.index_client].score;
             break;
         }
@@ -116,7 +116,7 @@ void split_health(list_element *head, int index_client) {
 }
 
 void search_and_destroy_roaches(list_element *head, int index_client) {
-    // having a tail, we will iterate through the list searching for heads
+    /* Having a tail, we will iterate through the list searching for heads */
     list_element *current = head;
     list_element *nextNode;
     bool end = false;
@@ -127,14 +127,14 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
     while (!end) {
         while (current != NULL) {
             
-            if (current->data.element_type == 2) { //found roach
+            if (current->data.element_type == 2) { /* Found roach */
 
-                //increase lizard score
+                /* Increase lizard score */
                 client_lizards[index_client].score += client_roaches[current->data.index_client].char_data[current->data.index_roaches].ch - '0';
 
                 client_roaches[current->data.index_client].active[current->data.index_roaches] = false;
 
-                // insert roach in inactive roaches list with associated start_time
+                /* Insert roach in inactive roaches list with associated start_time */
                 r.death_time = s_clock();
 
                 r.index_client = current->data.index_client;
@@ -188,7 +188,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
         bool check;
 
         if (ch == ' ') {
-            // delete from list position xy in field
+            /* Delete from list position xy in field */
             deletelist_element(&head, new_data);
 
             if (head != NULL) {
@@ -197,7 +197,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
                   
         }
         else {
-            // add to list position xy in field    
+            /* Add to list position xy in field */
             check = insertBegin(&head, new_data);
             if (!check) {
                 fprintf(stderr, "Memory allocation failed\n");
@@ -224,6 +224,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
         msg_publisher.y_upd = y;
 
         update_lizards();
+        
         send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
         assert(send1 != -1);
         send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
@@ -298,7 +299,7 @@ bool check_head_in_square(list_element *head) {
     list_element *current = head;
     list_element *nextNode;
     while (current != NULL) {
-        if (current->data.element_type == 1) { // head of lizard
+        if (current->data.element_type == 1) { /* Head of lizard */
             return true;
         }
         nextNode = current->next;
@@ -313,8 +314,7 @@ char check_prioritary_element(list_element *head) {
     char winner = '?';
     int winner_type = -1;
     while (current != NULL) {
-        // ta a entrar em loop com element_type=0, winner_type=0
-        if (current->data.element_type == 1) { // head of lizard
+        if (current->data.element_type == 1) { /* Head of lizard */
             winner = client_lizards[current->data.index_client].char_data.ch;
             
             return winner;
@@ -373,21 +373,21 @@ list_element ***allocate3DArray() {
 
 void free3DArray(list_element ***table) {
     if (table == NULL) {
-        return; // Nothing to free
+        return; /* Nothing to free */
     }
 
     for (int i = 0; i < WINDOW_SIZE; i++) {
         if (table[i] != NULL) {
             for (int j = 0; j < WINDOW_SIZE; j++) {
-                // Free the third dimension if it was allocated
+                /* Free the third dimension if it was allocated */
                 freeList(table[i][j]);
             }
-            // Free the second dimension
+            /* Free the second dimension */
             table[i] = free_safe(table[i]);
         }
     }
 
-    // Finally, free the first dimension
+    /* Finally, free the first dimension */
     table = free_safe(table);
 }
 
@@ -397,8 +397,6 @@ void ressurect_roaches() {
     while (roaches_killed != NULL) {
         end_time = s_clock();
         inactive_time = (end_time - roaches_killed->data.death_time); 
-        // mvwprintw(stats_win, 1, 1, "%ld", inactive_time);
-        // wrefresh(stats_win);
         
         /* This would be done even better with threads */
         if (inactive_time >= RESPAWN_TIME) {
@@ -408,8 +406,8 @@ void ressurect_roaches() {
                 client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
                 client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
 
-                // verify if new position matches the position of anothers' head lizard
-                if(check_head_in_square(field[client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_x]
+                /* Verify if new position matches the position of anothers' head lizard */
+                if (check_head_in_square(field[client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_x]
                     [client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_y]) == false) {
                     break;
                 }
@@ -427,20 +425,24 @@ void ressurect_roaches() {
     return;
 }
 
+/* Display each player (lizard) name and score */
 void display_stats() {
-    int i = 0;
+    if (end_game < 2) {
+        int i = 0;
 
-    for (int j = 0; j < MAX_LIZARDS; j++) {
-        mvwprintw(stats_win, j, 1, "\t\t\t\t\t");
-        wrefresh(stats_win);
-        if (client_lizards[j].valid) {
-            mvwprintw(stats_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
+        for (int j = 0; j < MAX_LIZARDS; j++) {
+            mvwprintw(stats_win, j, 1, "\t\t\t\t\t");
             wrefresh(stats_win);
-            i++;
+            if (client_lizards[j].valid) {
+                mvwprintw(stats_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
+                wrefresh(stats_win);
+                i++;
+            }
         }
     }
 }
 
+/* Free allocated memory if an error occurs */
 void free_exit() {
     delwin(stats_win);
     delwin(debug_win);
@@ -455,11 +457,14 @@ void free_exit() {
 }
 
 int main() {
-    end_game = 0;
-    
+    char port_display[MAX_PORT_STR_LEN], port_client[MAX_PORT_STR_LEN];
+    char full_address_display[FULL_ADDRESS_LEN], full_address_client[FULL_ADDRESS_LEN];
     remote_char_t m;
+    size_t send1, send2, bufsize = 100;
+    struct termios oldt, newt;
+    int rc, rc2, i, j, ch;
 
-    size_t send1, send2;
+    end_game = 0;
 
     field = allocate3DArray();
     if (field == NULL) {
@@ -468,60 +473,57 @@ int main() {
         exit(0);
     }
 
-    char port_display[MAX_PORT_STR_LEN], port_client[MAX_PORT_STR_LEN];
-    char full_address_display[FULL_ADDRESS_LEN], full_address_client[FULL_ADDRESS_LEN];
-
-    // Ask the user to enter the port for the client app
+    /* Ask the user to enter the port for the client app */
     printf("Port for client app: ");
     if (fgets(port_client, sizeof(port_client), stdin) != NULL) {
-        // Remove the newline character from the end, if it exists
+        /* Remove the newline character from the end, if it exists */
         port_client[strcspn(port_client, "\n")] = 0;
 
-        // Display the entered string
+        /* Display the entered string */
         printf("Port Client: %s\n", port_client);
     } else {
-        // Handle input error
+        /* Handle input error */
         fprintf(stderr, "Error reading input.\n");
         free_exit();
         exit(EXIT_FAILURE);
     }
 
-    // Validate the port number
+    /* Validate the port number */
     if (strlen(port_client) > 5 || atoi(port_client) <= 0 || atoi(port_client) > 65535) {
         fprintf(stderr, "Invalid port number. Please provide a number between 1 and 65535.\n");
         free_exit();
         exit(EXIT_FAILURE);
     }
 
-    // Format the full address for the client
+    /* Format the full address for the client */
     snprintf(full_address_client, sizeof(full_address_client), "tcp://*:%s", port_client);
 
-    // Ask the user to enter the port for the display app
+    /* Ask the user to enter the port for the display app */
     printf("Port for display app: ");
     if (fgets(port_display, sizeof(port_display), stdin) != NULL) {
-        // Remove the newline character from the end, if it exists
+        /* Remove the newline character from the end, if it exists */
         port_display[strcspn(port_display, "\n")] = 0;
 
-        // Display the entered string
+        /* Display the entered string */
         printf("Port Display: %s\n", port_display);
     } else {
-        // Handle input error
+        /* Handle input error */
         fprintf(stderr, "Error reading input.\n");
         free_exit();
         exit(EXIT_FAILURE);
     }
 
-    // Validate the port number
+    /* Validate the port number */
     if (strlen(port_display) > 5 || atoi(port_display) <= 0 || atoi(port_display) > 65535) {
         fprintf(stderr, "Invalid port number. Please provide a number between 1 and 65535.\n");
         free_exit();
         exit(EXIT_FAILURE);
     }
 
-    // Format the full address for the display
+    /* Format the full address for the display */
     snprintf(full_address_display, sizeof(full_address_display), "tcp://*:%s", port_display);
 
-    // At this point, the full_address_client and full_address_display contain the formatted strings
+    /* At this point, the full_address_client and full_address_display contain the formatted strings */
     printf("Full address for client app: %s\n", full_address_client);
     printf("Full address for display app: %s\n", full_address_display);
 
@@ -529,27 +531,24 @@ int main() {
     assert(context != NULL);
     responder = zmq_socket (context, ZMQ_REP);
     assert(responder != NULL);
-    int rc = zmq_bind (responder, full_address_client);
+    rc = zmq_bind (responder, full_address_client);
     assert (rc == 0);
 
     publisher = zmq_socket (context, ZMQ_PUB);
     assert(publisher != NULL);
-    int rc2 = zmq_bind (publisher, full_address_display);
+    rc2 = zmq_bind (publisher, full_address_display);
     assert(rc2 == 0);
 
-    
+    /* Initialize message regarding communication with display-app */
     msg_publisher.x_upd = -1;
     msg_publisher.y_upd = -1;
-    for (int vv = 0; vv < WINDOW_SIZE; vv++) {
-        for(int uu = 0; uu < WINDOW_SIZE; uu++) {
-            msg_publisher.field[vv][uu] = ' ';
+    for (i = 0; i < WINDOW_SIZE; i++) {
+        for (int j = 0; j < WINDOW_SIZE; j++) {
+            msg_publisher.field[i][j] = ' ';
         }
     }
-
-	struct termios oldt, newt;
     
-    size_t bufsize = 100;
-    int ch;
+    
 
     initscr();		    	
 	cbreak();				
@@ -557,48 +556,48 @@ int main() {
 	noecho();	
 
     password = NULL;
-    // Allocate memory for the password
+    /* Allocate memory for the password */
     password = (char *)malloc(bufsize * sizeof(char));
-    if(password == NULL) {
+    if (password == NULL) {
         fprintf(stderr, "Unable to allocate memory\n");
         free_exit();
         exit(0);
     }
 
-    // Turn off echoing of characters
-    tcgetattr(STDIN_FILENO, &oldt); // get current terminal attributes
+    /* Turn off echoing of characters */
+    tcgetattr(STDIN_FILENO, &oldt); /* Get current terminal attributes */
     newt = oldt;
-    newt.c_lflag &= ~(ECHO); // turn off ECHO
+    newt.c_lflag &= ~(ECHO); /* Turn off ECHO */
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
-    // Read password
+    /* Read password */
     printw("Display-app pass: ");
     refresh();
 
-    int i = 0, j = 0;
+    i = 0; 
+    j = 0;
     while(i < 99 && (ch = getch()) != '\n') {
         password[i++] = ch;
-        // addch('*'); // Display an asterisk for each character
     }
-    password[i] = '\0'; // Null-terminate the string
+    password[i] = '\0'; /* Null-terminate the string */
 
     send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
     assert(send1 != -1);
     send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
     assert(send2 != -1);
 
-    // Restore terminal settings
+    /* Restore terminal settings */
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);	    
 
-    /* creates a window and draws a border */
+    /* Creates a window and draws a border */
     my_win = newwin(WINDOW_SIZE, WINDOW_SIZE, 0, 0);
     box(my_win, 0, 0);
 	wrefresh(my_win);
 
-    // creates a window for stats
+    /* Creates a window for stats */
     stats_win = newwin(MAX_LIZARDS + 1, 100, WINDOW_SIZE + 1, 0);
 
-    // creates a window for debug
+    /* Creates a window for debug */
     debug_win = newwin(20, 100, WINDOW_SIZE + 1 + MAX_LIZARDS + 1, 0);
 
     int max_roaches = floor(((WINDOW_SIZE - 2)*(WINDOW_SIZE - 2))/3);
@@ -613,7 +612,7 @@ int main() {
     int pos_x_roaches, pos_x_lizards, pos_y_roaches, pos_y_lizards;
     int pos_x_roaches_aux, pos_y_roaches_aux, pos_x_lizards_aux, pos_y_lizards_aux;
     
-    //in worst case scenario each client has one roach and there are (WINDOW_SIZE*WINDOW_SIZE)/3 roaches
+    /* In worst case scenario each client has one roach and there are (WINDOW_SIZE*WINDOW_SIZE)/3 roaches */
     client_roaches = (pos_roaches*) calloc(max_roaches, sizeof(pos_roaches));
     if (client_roaches == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
@@ -640,14 +639,14 @@ int main() {
 
     while (1) {
 
-        // ressurect roaches
+        /* Ressurect roaches */
         ressurect_roaches(client_roaches);
 
         recv = zmq_recv (responder, &m, sizeof(remote_char_t), 0);
         assert(recv != -1);        
 
-        if(m.msg_type == 0) {
-            // testing if roach is valid
+        if (m.msg_type == 0) {
+            /* Testing if roach is valid */
             if (m.nChars + total_roaches > max_roaches) {
                 ok = 0;
                 send = zmq_send (responder, &ok, sizeof(int), 0);
@@ -655,7 +654,7 @@ int main() {
                 ok = 1;
                 continue;
             }
-            // check if new client id is already in use
+            /* Check if new client id is already in use */
             for (int iii = 0; iii < n_clients_roaches; iii++) {
                 if (client_roaches[iii].id == m.id) {
                     ok = (int) '?';
@@ -668,7 +667,7 @@ int main() {
                 ok = 1;
                 continue;
             }
-            // check if new client id is already in use
+            /* Check if new client id is already in use */
             for (int iii = 0; iii < MAX_LIZARDS; iii++) {
                 if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
                     ok = (int) '?';
@@ -697,8 +696,8 @@ int main() {
                     client_roaches[n_clients_roaches].char_data[i].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
                     client_roaches[n_clients_roaches].char_data[i].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
 
-                    // verify if new position matches the position of anothers' head lizard
-                    if(check_head_in_square(field[client_roaches[n_clients_roaches].char_data[i].pos_x][ 
+                    /* Verify if new position matches the position of anothers' head lizard */
+                    if (check_head_in_square(field[client_roaches[n_clients_roaches].char_data[i].pos_x][ 
                         client_roaches[n_clients_roaches].char_data[i].pos_y]) == false) {
                         break;
                     }
@@ -712,7 +711,7 @@ int main() {
                 index_roaches = i;  
                 element_type = 2;
 
-                /* draw mark on new position */
+                /* Draw mark on new position */
                 field[pos_x_roaches][pos_y_roaches] = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
                     index_roaches, element_type, field[pos_x_roaches][pos_y_roaches]);
                 
@@ -730,7 +729,7 @@ int main() {
             uint32_t index_client_roaches_id = 0;
 
             for (int jjj = 0; jjj < n_clients_roaches;jjj++) {
-                if(client_roaches[jjj].id == m.id) {
+                if (client_roaches[jjj].id == m.id) {
                     index_client_roaches_id = jjj;
                     break;
                 }
@@ -749,24 +748,24 @@ int main() {
                     new_position(&pos_x_roaches_aux, &pos_y_roaches_aux, m.direction[i]);
                 
                     if (!(pos_x_roaches_aux < 0 || pos_y_roaches_aux < 0  || pos_x_roaches_aux >= WINDOW_SIZE || pos_y_roaches_aux  >= WINDOW_SIZE)) {
-                        // verify if new position matches the position of anothers' head lizard
+                        /* Verify if new position matches the position of anothers' head lizard */
                         if (check_head_in_square(field[pos_x_roaches_aux][pos_y_roaches_aux]) == false) {
                             
                             index_client = index_client_roaches_id;
                             index_roaches = i;  
                             element_type = 2;
 
-                            /* draw mark on new position */
+                            /* Draw mark on new position */
                             field[pos_x_roaches][pos_y_roaches] = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
                                 index_roaches, element_type, field[pos_x_roaches][pos_y_roaches]);
 
-                            /* calculates new mark position */
+                            /* Calculates new mark position */
                             pos_x_roaches = pos_x_roaches_aux;
                             pos_y_roaches = pos_y_roaches_aux;
                             client_roaches[index_client_roaches_id].char_data[i].pos_x = pos_x_roaches;
                             client_roaches[index_client_roaches_id].char_data[i].pos_y = pos_y_roaches;
 
-                            /* draw mark on new position */
+                            /* Draw mark on new position */
                             field[pos_x_roaches][pos_y_roaches] = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
                                 index_roaches, element_type, field[pos_x_roaches][pos_y_roaches]);
                         }
@@ -775,16 +774,15 @@ int main() {
             }
         }
         else if (m.msg_type == 2) {
-
-            // check if lizard is valid
+            /* Check if lizard is valid */
             if (total_lizards + 1 > MAX_LIZARDS) {
-                ok = (int) '?'; // in case the pool is full of lizards
+                ok = (int) '?'; /* In case the pool is full of lizards */
                 send = zmq_send (responder, &ok, sizeof(int), 0);
                 assert(send != -1);
                 ok = 1;
                 continue;
             }
-            // check if new client id is already in use
+            /* Check if new client id is already in use */
             for (int iii = 0; iii < n_clients_roaches; iii++) {
                 if (client_roaches[iii].id == m.id) {
                     ok = (int) '?';
@@ -797,7 +795,7 @@ int main() {
                 ok = 1;
                 continue;
             }
-            // check if new client id is already in use
+            /* Check if new client id is already in use */
             for (int iii = 0; iii < MAX_LIZARDS; iii++) {
                 if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
                     ok = (int) '?';
@@ -832,7 +830,7 @@ int main() {
                 client_lizards[index_of_position_to_insert].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
                 client_lizards[index_of_position_to_insert].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
 
-                // verify if new position matches the position of anothers' head lizard
+                /* Verify if new position matches the position of anothers' head lizard */
                 if (check_head_in_square(field[client_lizards[index_of_position_to_insert].char_data.pos_x]
                     [client_lizards[index_of_position_to_insert].char_data.pos_y]) == false) {
                     break;
@@ -856,18 +854,18 @@ int main() {
             index_roaches = -1;  
             element_type = 1;
 
-            /* draw mark on new position */
+            /* Draw mark on new position */
             field[pos_x_lizards][pos_y_lizards] = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
                 index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
 
             total_lizards++;
 
         } 
-        else if(m.msg_type == 3){
+        else if (m.msg_type == 3){
             uint32_t index_client_lizards_id = 0;
 
             for (int jjj = 0; jjj < MAX_LIZARDS;jjj++) {
-                if(client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
+                if (client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
                 }
@@ -883,13 +881,13 @@ int main() {
             new_position(&pos_x_lizards_aux, &pos_y_lizards_aux, m.direction[0]);
             
             if (!(pos_x_lizards_aux < 0 || pos_y_lizards_aux < 0  || pos_x_lizards_aux >= WINDOW_SIZE || pos_y_lizards_aux  >= WINDOW_SIZE)) {
-                if(check_head_in_square(field[pos_x_lizards_aux][pos_y_lizards_aux]) == false) {
+                if (check_head_in_square(field[pos_x_lizards_aux][pos_y_lizards_aux]) == false) {
 
-                    // delete old tail
+                    /* Delete old tail */
                     tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
                         true, index_client_lizards_id);
 
-                    // new tail
+                    /* New tail */
                     tail(m.direction[0], pos_x_lizards_aux, pos_y_lizards_aux, false, 
                         index_client_lizards_id);
 
@@ -901,7 +899,7 @@ int main() {
                     field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
                         index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
 
-                    /* calculates new mark position */
+                    /* Calculates new mark position */
                     pos_x_lizards = pos_x_lizards_aux;
                     pos_y_lizards = pos_y_lizards_aux;
                     client_lizards[index_client_lizards_id].char_data.pos_x = pos_x_lizards;
@@ -913,7 +911,7 @@ int main() {
                     client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
 
                     if (client_lizards[index_client].score >= POINTS_TO_WIN && end_game == 0) {
-                        // new tail
+                        /* New tail */
                         end_game = 1;
                         tail(m.direction[0], pos_x_lizards, pos_y_lizards, false, 
                             index_client_lizards_id);
@@ -922,9 +920,6 @@ int main() {
                     }
                 }
                 else {
-                    // mvwprintw(debug_win, 1, 0, "%d", field[pos_x_lizards_aux][pos_y_lizards_aux]->data.index_client);
-                    // wrefresh(debug_win);
-                    
                     split_health(field[pos_x_lizards_aux][pos_y_lizards_aux], index_client_lizards_id);
                 }
                 
@@ -933,7 +928,7 @@ int main() {
                 
             }
         }
-        else if(m.msg_type == 4){
+        else if (m.msg_type == 4){
             send = zmq_send (responder, &ok, sizeof(int), 0);
             assert(send != -1);
             ok = 1;
@@ -941,7 +936,7 @@ int main() {
             uint32_t index_client_lizards_id = 0;
 
             for (int jjj = 0; jjj < MAX_LIZARDS; jjj++) {
-                if(client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
+                if (client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
                 }
@@ -951,7 +946,7 @@ int main() {
             pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
             ch = client_lizards[index_client_lizards_id].char_data.ch;
 
-            /* delete old tail */
+            /* Delete old tail */
             tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
                 true, index_client_lizards_id);
 
@@ -959,7 +954,7 @@ int main() {
             index_roaches = -1;  
             element_type = 1;
 
-            /* deletes old place */
+            /* Deletes old place */
             field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
                 index_roaches, element_type, field[pos_x_lizards][pos_y_lizards]);
 

@@ -9,7 +9,7 @@ void *free_safe2 (void *aux) {
     return NULL;
 }
 
-// Function to create a new list_element
+/* Function to create a new list_element */
 list_element* createlist_element(square data) {
     list_element* newlist_element = (list_element*)malloc(sizeof(list_element));
     if (newlist_element == NULL) {
@@ -22,7 +22,7 @@ list_element* createlist_element(square data) {
 }
 
 
-// Function to insert a new list_element at the beginning
+/* Function to insert a new list_element at the beginning */
 bool insertBegin(list_element** head, square data) {
     list_element* newlist_element = createlist_element(data);
     if (newlist_element == NULL) {
@@ -74,7 +74,7 @@ void deletelist_element(list_element** head, square data) {
     return;
 }
 
-// Function to print the linked list
+/* Function to print the linked list */
 void printList(list_element* head) {
     list_element* temp = head;
     while (temp != NULL) {
@@ -86,7 +86,7 @@ void printList(list_element* head) {
     printf("\n");
 }
 
-// Function to free the memory allocated for the linked list
+/* Function to free the memory allocated for the linked list */
 void freeList(list_element* head) {
     list_element* temp;
     while (head != NULL) {

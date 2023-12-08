@@ -29,6 +29,8 @@ pos_lizards client_lizards[MAX_LIZARDS];
 #define ADDRESS_PREFIX_LEN 10 // Length of "tcp://*:" including null terminator
 #define FULL_ADDRESS_LEN (MAX_PORT_STR_LEN + ADDRESS_PREFIX_LEN)
 
+int end_game;
+
 void *context;
 void *responder;
 void *publisher;
@@ -125,48 +127,17 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
         while (current != NULL) {
             
             if (current->data.element_type == 2) { //found roach
-                // mvwprintw(debug_win, 1, 1, "Index Client %d, Index Roaches %d", current->data.index_client, current->data.index_roaches);
-                // wrefresh(debug_win);
 
                 //increase lizard score
                 client_lizards[index_client].score += client_roaches[current->data.index_client].char_data[current->data.index_roaches].ch - '0';
 
                 client_roaches[current->data.index_client].active[current->data.index_roaches] = false;
 
-                // mvwprintw(debug_win, 2, 1, "Index Client %d, Index Roaches %d", current->data.index_client, current->data.index_roaches);
-                // wrefresh(debug_win);
-
                 // insert roach in inactive roaches list with associated start_time
                 r.death_time = clock();
 
-                // mvwprintw(debug_win, 3, 1, "Index Client %d, Index Roaches %d", current->data.index_client, current->data.index_roaches);
-                // wrefresh(debug_win);
-
                 r.index_client = current->data.index_client;
                 r.index_roaches = current->data.index_roaches;
-
-                // mvwprintw(debug_win, 4, 1, "Index Client %d, Index Roaches %d", r.index_client, r.index_roaches);
-                // wrefresh(debug_win);
-
-                ///////
-                //printar a lista antes de eliminar a barata
-                // fifo_element* temp;
-                // int kkkk=1;
-
-                // mvwprintw(debug_win, kkkk, 1, "antes de apagar barata r death_time %lf, Index Client %d, Index Roaches %d", r.death_time,
-                //     r.index_client, r.index_roaches);
-                // wrefresh(debug_win);
-                // kkkk++;
-
-                // temp=roaches_killed;
-                // // kkkk=1;
-                // while (temp != NULL) {
-                //     mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
-                //     temp->data.index_client, temp->data.index_roaches);
-                //     wrefresh(debug_win);
-                //     kkkk+=1;
-                //     temp = temp->next;
-                // }
 
                 check = push_fifo(&roaches_killed, r);
                 if (!check) {
@@ -175,64 +146,11 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
                     exit(0);
                 }
 
-                //printar a lista antes de eliminar a barata
-                // mvwprintw(debug_win, kkkk, 1, "depois de apagar barata");
-                // wrefresh(debug_win);
-                // kkkk++;
-
-                // temp=roaches_killed;
-                // while (temp != NULL) {
-                //     mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
-                //     temp->data.index_client, temp->data.index_roaches);
-                //     wrefresh(debug_win);
-                //     kkkk+=1;
-                //     temp = temp->next;
-                // }
-
-                /////
-
                 s.element_type = current->data.element_type;
                 s.index_client = current->data.index_client;
                 s.index_roaches = current->data.index_roaches;
 
-                ///
-                ///////
-                //printar a lista antes de eliminar a barata
-                // list_element* temp2;
-                // int kkkk=0;
-
-                // mvwprintw(debug_win, kkkk, 1, "antes de apagar barata");
-                // wrefresh(debug_win);
-                // kkkk++;
-
-                // temp2=head;
-                // kkkk=1;
-                // while (temp2 != NULL) {
-                //     mvwprintw(debug_win, kkkk, 1, "death_time %d, Index Client %d, Index Roaches %d", temp2->data.element_type,
-                //     temp2->data.index_client, temp2->data.index_roaches);
-                //     wrefresh(debug_win);
-                //     kkkk+=1;
-                //     temp2 = temp2->next;
-                // }
-
                 deletelist_element(&head, s);
-
-                // //printar a lista antes de eliminar a barata
-                // mvwprintw(debug_win, kkkk, 1, "depois de apagar barata");
-                // wrefresh(debug_win);
-                // kkkk++;
-
-                // temp2=head;
-                // while (temp2 != NULL) {
-                //     mvwprintw(debug_win, kkkk, 1, "death_time %d, Index Client %d, Index Roaches %d", temp2->data.element_type,
-                //     temp2->data.index_client, temp2->data.index_roaches);
-                //     wrefresh(debug_win);
-                //     kkkk+=1;
-                //     temp2 = temp2->next;
-                // }
-
-
-                ///
 
                 break;
             }
@@ -260,97 +178,80 @@ void update_lizards() {
 
 list_element *display_in_field(char ch, int x, int y, int index_client, 
                     int index_roaches, int element_type, list_element *head) {
+                    
+    if (end_game < 2) {
+        square new_data;
+        new_data.element_type = element_type;
+        new_data.index_client = index_client;
+        new_data.index_roaches = index_roaches;
+        size_t send1, send2;
+        bool check;
 
-    square new_data;
-    new_data.element_type = element_type;
-    new_data.index_client = index_client;
-    new_data.index_roaches = index_roaches;
-    size_t send1, send2;
-    bool check;
+        if (ch == ' ') {
+            // delete from list position xy in field
+            deletelist_element(&head, new_data);
 
-    if (ch == ' ') {
-        // delete from list position xy in field
-        // if (element_type == 0) {
-        //     mvwprintw(debug_win, 1, 1, "%d-%d", head->next.data.element_type, element_type);
-        //     wrefresh(debug_win);
-        //     mvwprintw(debug_win, 2, 1, "%d-%d", head->next.index_client, index_client);
-        //     wrefresh(debug_win);
-        //     mvwprintw(debug_win, 3, 1, "%d-%d", head->next.index_roaches, index_roaches);
-        //     wrefresh(debug_win);
-        // }   
-        deletelist_element(&head, new_data);
-
-        // verificar se nesta posiçao existem mais elementos? se existirem display = True
-        if (head != NULL) {
-            ch = check_prioritary_element(head); 
-            // if (element_type == 0) {
-            //     mvwprintw(debug_win, 4, 1, "%d", head->data.element_type);
-            //     wrefresh(debug_win);
-            //     mvwprintw(debug_win, 5, 1, "%d", head->data.index_client);
-            //     wrefresh(debug_win);
-            //     mvwprintw(debug_win, 6, 1, "%d", head->data.index_roaches);
-            //     wrefresh(debug_win);
-            // }       
+            // verificar se nesta posiçao existem mais elementos? se existirem display = True
+            if (head != NULL) {
+                ch = check_prioritary_element(head); 
+            }
+            
+            
         }
-        // else {
-        //     if (element_type == 0) {
-        //         mvwprintw(debug_win, 4, 1, "NULL");
-        //         wrefresh(debug_win);
-        //     }     
-        // }
+        else {
+            // add to list position xy in field    
+            check = insertBegin(&head, new_data);
+            if (!check) {
+                fprintf(stderr, "Memory allocation failed\n");
+                free_exit();
+                exit(0);
+            }
 
+            if (head != NULL && element_type == 0) {
+                ch = check_prioritary_element(head);
+            }
+
+            // se for um lizard:
+            //  verificar se a tua cabeça coincide com:
+            //      - uma barata (comer barata), ou seja vai aumentar o seu score, e a barata desaparece 5 segundos e reaparece aleatoriamente
+            //      - uma tail: repartir os pontos de ambos os lizards
+            if (element_type == 1) {
+                search_and_destroy_roaches(head, index_client);
+            }
+        }
         
-        
+
+        wmove(my_win, x, y);
+        waddch(my_win, ch | A_BOLD);
+        wrefresh(my_win);
+
+        msg_publisher.field[x][y] = ch;
+        msg_publisher.x_upd = x;
+        msg_publisher.y_upd = y;
+
+        update_lizards();
+        send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
+        assert(send1 != -1);
+        send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
+        assert(send2 != -1);
+
     }
-    else {
-        // add to list position xy in field    
-        check = insertBegin(&head, new_data);
-        if (!check) {
-            fprintf(stderr, "Memory allocation failed\n");
-            free_exit();
-            exit(0);
-        }
-
-        if (head != NULL && element_type == 0) {
-            ch = check_prioritary_element(head);
-        }
-
-        // se for um lizard:
-        //  verificar se a tua cabeça coincide com:
-        //      - uma barata (comer barata), ou seja vai aumentar o seu score, e a barata desaparece 5 segundos e reaparece aleatoriamente
-        //      - uma tail: repartir os pontos de ambos os lizards
-        if (element_type == 1) {
-            search_and_destroy_roaches(head, index_client);
-        }
-    }
-    
-
-    wmove(my_win, x, y);
-    waddch(my_win, ch | A_BOLD);
-    wrefresh(my_win);
-
-    msg_publisher.field[x][y] = ch;
-    msg_publisher.x_upd = x;
-    msg_publisher.y_upd = y;
-
-    update_lizards();
-    send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
-    assert(send1 != -1);
-    send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
-    assert(send2 != -1);
-
-
     return head;
 }
 
 
 void tail(direction_t direction, int x, int y, bool delete, int index_client) {
     char display;
-    if (delete == true) {
-        display = ' ';
+    if (end_game == 1) {
+        display = '*';
     }
     else {
-        display = '.';
+        if (delete == true) {
+            display = ' ';
+        }
+        else {
+            display = '.';
+        }
     }
 
     int index_roaches = -1;  
@@ -429,7 +330,12 @@ char check_prioritary_element(list_element *head) {
             winner_type = 2;    
         }
         else if (current->data.element_type == 0 && winner_type == -1) {
-            winner = '.';
+            if (end_game == 1) {
+                winner = '*';
+            }
+            else {
+                winner = '.';
+            }
             winner_type = 0;
         }
         nextNode = current->next;
@@ -596,6 +502,8 @@ void free_exit() {
 }
 
 int main() {
+    end_game = 0;
+    
     remote_char_t m;
 
     size_t send1, send2;
@@ -694,7 +602,7 @@ int main() {
 
     initscr();		    	
 	cbreak();				
-    keypad(stdscr, TRUE);   
+    keypad(stdscr, true);   
 	noecho();	
 
     password = NULL;
@@ -1047,6 +955,15 @@ int main() {
                     
 
                     client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
+
+                    if (client_lizards[index_client].score >= 50 && end_game == 0) {
+                        // new tail
+                        end_game = 1;
+                        tail(m.direction[0], pos_x_lizards, pos_y_lizards, false, 
+                            index_client_lizards_id);
+
+                        end_game = 2;
+                    }
                 }
                 else {
                     // mvwprintw(debug_win, 1, 0, "%d", field[pos_x_lizards_aux][pos_y_lizards_aux]->data.index_client);

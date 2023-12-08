@@ -48,3 +48,12 @@ typedef struct remote_display_msg
 }remote_display_msg;
 
 
+typedef struct msg_subscriber
+{   
+    int x_upd;
+    int y_upd;
+    char **field;
+    /* data */
+}msg_subscriber;
+
+

@@ -14,65 +14,23 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define WINDOW_SIZE 15 
+#define WINDOW_SIZE 20
+#define MAX_LIZARDS 26
 
-// STEP 1
+WINDOW *my_win;
+WINDOW *debug_win;
+WINDOW *stats_win;
 
-direction_t random_direction(){
-    return  random()%4;
-
-}
-    void new_position(int* x, int *y, direction_t direction){
-        switch (direction)
-        {
-        case UP:
-            (*x) --;
-            if(*x ==0)
-                *x = 2;
-            break;
-        case DOWN:
-            (*x) ++;
-            if(*x ==WINDOW_SIZE-1)
-                *x = WINDOW_SIZE-3;
-            break;
-        case LEFT:
-            (*y) --;
-            if(*y ==0)
-                *y = 2;
-            break;
-        case RIGHT:
-            (*y) ++;
-            if(*y ==WINDOW_SIZE-1)
-                *y = WINDOW_SIZE-3;
-            break;
-        default:
-            break;
-        }
-}
-
-int find_ch_info(ch_info_t char_data[], int n_char, int ch){
-
-    for (int i = 0 ; i < n_char; i++){
-        if(ch == char_data[i].ch){
-            return i;
-        }
-    }
-
-    return -1;
-}
 
 int main()
 {
-       
-    //STEP 2
-    remote_display_msg msg_subscriber;
-    ch_info_t char_data[100];
-    int n_chars = 0;
+    msg_subscriber msg;
+    int new = 0, j = 0;
 
     void *context = zmq_ctx_new ();
     assert(context != NULL);
     void *subscriber = zmq_socket (context, ZMQ_SUB);
-    zmq_connect (subscriber, "tcp://127.0.0.1:5558");
+    zmq_connect (subscriber, "tcp://*:5560");
     assert(subscriber != NULL);
     
     struct termios oldt, newt;
@@ -106,9 +64,7 @@ int main()
     while(i < 99 && (ch = getch()) != '\n') {
         password[i++] = ch;
         // addch('*'); // Display an asterisk for each character
-        
     }
-
     password[i] = '\0'; // Null-terminate the string
 
     // Restore terminal settings
@@ -117,16 +73,16 @@ int main()
     zmq_setsockopt (subscriber, ZMQ_SUBSCRIBE, password, strlen(password));		    
 
     /* creates a window and draws a border */
-    WINDOW * my_win = newwin(WINDOW_SIZE, WINDOW_SIZE, 0, 0);
+    my_win = newwin(WINDOW_SIZE, WINDOW_SIZE, 0, 0);
     box(my_win, 0 , 0);	
 	wrefresh(my_win);
 
-    int pos_x;
-    int pos_y;
+    // creates a window for stats
+    stats_win = newwin(MAX_LIZARDS + 1, 100, WINDOW_SIZE + 1, 0);
 
-    int new = 0; // see if user as just entered the game. 0 -> means it has just entered; 1 -> else
+    // creates a window for debug
+    debug_win = newwin(20, 100, WINDOW_SIZE + 1 + MAX_LIZARDS + 1, 0);
 
-    direction_t  direction;
     while (1)
     {
         char *type = s_recv (subscriber);
@@ -134,74 +90,35 @@ int main()
             printf("Wrong password\n");
             exit(0);
         }
-        zmq_recv (subscriber, &msg_subscriber, sizeof(remote_display_msg), 0);
+        zmq_recv (subscriber, &msg, sizeof(remote_display_msg), 0);
 
 
         if(new == 0) {
             new = 1;
-
-            for(int jj = 0; jj < msg_subscriber.n_chars; jj++) {
-
-                n_chars++;
-                char_data[jj] = msg_subscriber.char_data[jj];
-                
-                pos_x = char_data[jj].pos_x;
-                pos_y = char_data[jj].pos_y;
-                ch = char_data[jj].ch;
-
-                /* draw mark on new position */
-                wmove(my_win, pos_x, pos_y);
-                waddch(my_win,ch| A_BOLD);
-                wrefresh(my_win);
+            
+            for (i = 0; i < WINDOW_SIZE; i++) {
+                for(j = 0; j < WINDOW_SIZE; j++) {
+                    ch = msg.field[i][j];
+                    wmove(my_win, i, j);
+                    waddch(my_win, ch | A_BOLD);
+                    wrefresh(my_win);
+                }
             }
 
         } else {
-
-            if(msg_subscriber.message_human_client.msg_type == 0){
-                ch = msg_subscriber.message_human_client.ch;
-                pos_x = WINDOW_SIZE/2;
-                pos_y = WINDOW_SIZE/2;
-
-                //STEP 3
-                char_data[n_chars].ch = ch;
-                char_data[n_chars].pos_x = pos_x;
-                char_data[n_chars].pos_y = pos_y;
-                n_chars++;
-            }
-            if(msg_subscriber.message_human_client.msg_type == 1){
-                //STEP 4
-                int ch_pos = find_ch_info(char_data, n_chars, msg_subscriber.message_human_client.ch);
-                if(ch_pos != -1){
-                    pos_x = char_data[ch_pos].pos_x;
-                    pos_y = char_data[ch_pos].pos_y;
-                    ch = char_data[ch_pos].ch;
-                    /*deletes old place */
-                    wmove(my_win, pos_x, pos_y);
-                    waddch(my_win,' ');
-
-                    /* claculates new direction */
-                    direction = msg_subscriber.message_human_client.direction;
-
-                    /* claculates new mark position */
-                    new_position(&pos_x, &pos_y, direction);
-                    char_data[ch_pos].pos_x = pos_x;
-                    char_data[ch_pos].pos_y = pos_y;
-
-                }        
-            }
-            /* draw mark on new position */
-            wmove(my_win, pos_x, pos_y);
-            waddch(my_win,ch| A_BOLD);
+            ch = msg.field[msg.x_upd][msg.y_upd];
+            wmove(my_win, msg.x_upd, msg.y_upd);
+            waddch(my_win, ch | A_BOLD);
             wrefresh(my_win);
         }
 
-        free(type);		
+        free_safe(type);		
     }
   	endwin();			/* End curses mode		  */
     zmq_close (subscriber);
     zmq_ctx_destroy (context);
     // Free the allocated memory
-    free(password);
+    free_safe(password);
 
 	return 0;
 }

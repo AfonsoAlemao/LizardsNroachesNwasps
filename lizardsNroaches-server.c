@@ -10,6 +10,8 @@
 #include <assert.h> 
 #include <math.h>
 #include <time.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "lists.h"
 #include "fifo.h"
@@ -29,6 +31,7 @@ pos_roaches *client_roaches;
 pos_lizards client_lizards[MAX_LIZARDS];
 void *context;
 void *responder;
+void *publisher;
 
 void new_position(int* x, int *y, direction_t direction);
 int find_ch_info(ch_info_t char_data[], int n_char, int ch);
@@ -556,6 +559,7 @@ void free_exit() {
     delwin(my_win);
     endwin();
     zmq_close (responder);
+    zmq_close(publisher);
     zmq_ctx_destroy (context);
     client_roaches = free_safe(client_roaches);
     free3DArray(field);
@@ -578,10 +582,47 @@ int main() {
     int rc = zmq_bind (responder, "tcp://*:5560");
     assert (rc == 0);
 
-	initscr();		    	
+    publisher = zmq_socket (context, ZMQ_PUB);
+    assert(publisher != NULL);
+    int rc2 = zmq_bind (publisher, "tcp://127.0.0.1:5560");
+    assert(rc2 == 0);
+
+	struct termios oldt, newt;
+    char *password = NULL;
+    size_t bufsize = 100;
+    int ch;
+
+    initscr();		    	
 	cbreak();				
-    keypad(stdscr, true);   
-	noecho();			    
+    keypad(stdscr, TRUE);   
+	noecho();	
+
+    // Allocate memory for the password
+    password = (char *)malloc(bufsize * sizeof(char));
+    if(password == NULL) {
+        perror("Unable to allocate memory");
+        exit(1);
+    }
+
+    // Turn off echoing of characters
+    tcgetattr(STDIN_FILENO, &oldt); // get current terminal attributes
+    newt = oldt;
+    newt.c_lflag &= ~(ECHO); // turn off ECHO
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // Read password
+    printw("Enter password: ");
+    refresh();
+
+    int i = 0;
+    while(i < 99 && (ch = getch()) != '\n') {
+        password[i++] = ch;
+        // addch('*'); // Display an asterisk for each character
+    }
+    password[i] = '\0'; // Null-terminate the string
+
+    // Restore terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);	    
 
     /* creates a window and draws a border */
     my_win = newwin(WINDOW_SIZE, WINDOW_SIZE, 0, 0);
@@ -618,6 +659,7 @@ int main() {
         free_exit();
         exit(0);
     }
+    
 
     srand(time(NULL));
 
@@ -957,7 +999,8 @@ int main() {
     delwin(debug_win);
     delwin(my_win);
   	endwin();
-    zmq_close (responder);
+    zmq_close(responder);
+    zmq_close(publisher);
     zmq_ctx_destroy (context);
     client_roaches = free_safe(client_roaches);
     free3DArray(field);

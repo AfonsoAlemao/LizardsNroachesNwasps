@@ -33,10 +33,10 @@ void display_stats(pos_lizards *client_lizards) {
     int i = 0;
 
     for (int j = 0; j <= MAX_LIZARDS; j++) {
-        mvwprintw(stats_win, j, 1, "\t\t\t\t\t");
+        mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
         wrefresh(stats_win);
         if (client_lizards[j].valid) {
-            mvwprintw(stats_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
+            mvwprintw(stats_win, i, 0, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
             wrefresh(stats_win);
             i++;
         }
@@ -139,22 +139,17 @@ int main(int argc, char *argv[]) {
     // mvwprintw(stats_win, 1, 1, "pass: %s", password);
     // wrefresh(stats_win);
 
-    while (1)
-    {
-        // mvwprintw(stats_win, 2, 1, "chegueiaqui");
-        // wrefresh(stats_win);
+    while (1) {
         char *type = s_recv (subscriber);
         if(strcmp(type, password) != 0 ) {
             printf("Wrong password\n");
             free_exit_display();
             exit(0);
         }
+
         zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
 
-        // mvwprintw(stats_win, 2, 1, "Acertaste a pass: %s", type);
-        // wrefresh(stats_win);
-
-        // mvwprintw(stats_win, 3, 1, "x=%d, y=%d", msg_subscriber.x_upd, msg_subscriber.y_upd);
+        // mvwprintw(stats_win, 5, 0, "x=%d, y=%d", msg_subscriber.x_upd, msg_subscriber.y_upd);
         // wrefresh(stats_win);
 
 
@@ -164,9 +159,11 @@ int main(int argc, char *argv[]) {
             for (i = 0; i < WINDOW_SIZE; i++) {
                 for(j = 0; j < WINDOW_SIZE; j++) {
                     ch = msg_subscriber.field[i][j];
-                    wmove(my_win, i, j);
-                    waddch(my_win, ch | A_BOLD);
-                    wrefresh(my_win);
+                    if (ch != ' ') {
+                        wmove(my_win, i, j);
+                        waddch(my_win, ch | A_BOLD);
+                        wrefresh(my_win); 
+                    }
                 }
             }
             display_stats(msg_subscriber.lizards);

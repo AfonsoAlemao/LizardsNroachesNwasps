@@ -246,7 +246,12 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
 }
 
 void update_lizards() {
-    memcpy(msg_publisher.lizards, client_lizards, sizeof(client_lizards));
+    for (int i = 0; i < MAX_LIZARDS; i++) {
+        msg_publisher.lizards[i].valid = client_lizards[i].valid;
+        msg_publisher.lizards[i].score = client_lizards[i].score;
+        msg_publisher.lizards[i].char_data.ch = client_lizards[i].char_data.ch;
+    }
+    return;
 }
 
 list_element *display_in_field(char ch, int x, int y, int index_client, 
@@ -321,6 +326,9 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
     wrefresh(my_win);
 
     msg_publisher.field[x][y] = ch;
+    msg_publisher.x_upd = x;
+    msg_publisher.y_upd = y;
+
     update_lizards();
     send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
     assert(send1 != -1);
@@ -604,7 +612,7 @@ int main() {
 
     publisher = zmq_socket (context, ZMQ_PUB);
     assert(publisher != NULL);
-    int rc2 = zmq_bind (publisher, "tcp://127.0.0.1:5558");
+    int rc2 = zmq_bind (publisher, "tcp://*:5558");
     assert(rc2 == 0);
 
     

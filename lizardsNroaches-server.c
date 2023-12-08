@@ -480,8 +480,6 @@ void display_stats() {
         mvwprintw(stats_win, j, 1, "\t\t\t\t\t");
         wrefresh(stats_win);
         if (client_lizards[j].valid) {
-            mvwprintw(stats_win, 5, 1, "j: %d, id: %d, ch: %c, valid: %d", j, client_lizards[j].id, (char) client_lizards[j].char_data.ch, client_lizards[j].valid);
-            wrefresh(stats_win);
             mvwprintw(stats_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
             wrefresh(stats_win);
             i++;

@@ -32,7 +32,7 @@ void *free_safe_d (void *aux) {
 void display_stats(pos_lizards *client_lizards) {
     int i = 0;
 
-    for (int j = 0; j <= MAX_LIZARDS; j++) {
+    for (int j = 0; j < MAX_LIZARDS; j++) {
         mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
         wrefresh(stats_win);
         if (client_lizards[j].valid) {

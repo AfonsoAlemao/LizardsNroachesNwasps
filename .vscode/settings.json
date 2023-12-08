@@ -15,7 +15,8 @@
     "stdlib.h": "c",
     "string.h": "c",
     "fifo.h": "c",
-    "stat.h": "c"
+    "stat.h": "c",
+    "zhelpers.h": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",

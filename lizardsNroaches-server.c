@@ -24,6 +24,7 @@ list_element ***field;
 fifo_element *roaches_killed;
 pos_roaches *client_roaches;
 pos_lizards client_lizards[MAX_LIZARDS];
+
 void *context;
 void *responder;
 void *publisher;
@@ -244,6 +245,10 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
     return;
 }
 
+void update_lizards() {
+    memcpy(msg_publisher.lizards, client_lizards, sizeof(client_lizards));
+}
+
 list_element *display_in_field(char ch, int x, int y, int index_client, 
                     int index_roaches, int element_type, list_element *head) {
 
@@ -310,6 +315,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
     wrefresh(my_win);
 
     msg_publisher.field[x][y] = ch;
+    update_lizards();
     send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
     assert(send1 != -1);
     send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
@@ -318,6 +324,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
 
     return head;
 }
+
 
 void tail(direction_t direction, int x, int y, bool delete, int index_client) {
     char display;
@@ -544,7 +551,6 @@ void ressurect_roaches() {
 }
 
 void display_stats() {
-    /* TODO: sort */
     int i = 0;
 
     for (int j = 0; j <= MAX_LIZARDS; j++) {
@@ -573,6 +579,8 @@ void free_exit() {
 int main() {
     remote_char_t m;
 
+    size_t send1, send2;
+
     field = allocate3DArray();
     if (field == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
@@ -589,18 +597,17 @@ int main() {
 
     publisher = zmq_socket (context, ZMQ_PUB);
     assert(publisher != NULL);
-    int rc2 = zmq_bind (publisher, "tcp://127.0.0.1:5560");
+    int rc2 = zmq_bind (publisher, "tcp://127.0.0.1:5558");
     assert(rc2 == 0);
 
     
     msg_publisher.x_upd = -1;
     msg_publisher.y_upd = -1;
-    for (int vv = 0; vv < WINDOW_SIZE - 2; vv++) {
-        for(int uu = 0; uu < WINDOW_SIZE - 2; uu++) {
+    for (int vv = 0; vv < WINDOW_SIZE; vv++) {
+        for(int uu = 0; uu < WINDOW_SIZE; uu++) {
             msg_publisher.field[vv][uu] = ' ';
         }
     }
-    
 
 	struct termios oldt, newt;
     
@@ -637,6 +644,11 @@ int main() {
     }
     password[i] = '\0'; // Null-terminate the string
 
+    send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
+    assert(send1 != -1);
+    send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
+    assert(send2 != -1);
+
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);	    
 
@@ -650,6 +662,9 @@ int main() {
 
     // creates a window for debug
     debug_win = newwin(20, 100, WINDOW_SIZE + 1 + MAX_LIZARDS + 1, 0);
+
+    mvwprintw(stats_win, 1, 1, "pass: %s", password);
+    wrefresh(stats_win);
     
     // mvwprintw(debug_win, 1, 1, "Your text here");
     // wrefresh(debug_win);

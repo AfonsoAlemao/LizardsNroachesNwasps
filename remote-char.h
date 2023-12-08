@@ -57,7 +57,8 @@ typedef struct msg
 {   
     int x_upd;
     int y_upd;
-    char field[WINDOW_SIZE-2][WINDOW_SIZE-2];
+    char field[WINDOW_SIZE][WINDOW_SIZE];
+    pos_lizards lizards[MAX_LIZARDS];
     /* data */
 }msg;
 

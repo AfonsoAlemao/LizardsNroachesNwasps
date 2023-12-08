@@ -28,7 +28,7 @@ roaches_client: roaches-client.c zhelpers.h remote-char.h
 lizard_client: lizard-client.c zhelpers.h remote-char.h
 	$(CC) $(CFLAGS) -o lizard_client lizard-client.c $(LIBS)
 
-# Rule for building lizard_client
+# Rule for display-app
 display_app: display-app.c zhelpers.h remote-char.h
 	$(CC) $(CFLAGS) -o display_app display-app.c $(LIBS)
 

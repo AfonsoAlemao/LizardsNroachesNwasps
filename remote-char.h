@@ -2,6 +2,11 @@
 #include <time.h>
 #include <stdbool.h>
 
+#define WINDOW_SIZE 20 
+#define MAX_LIZARDS 26
+#define TAIL_SIZE 5
+#define RESPAWN_TIME 5
+
 typedef enum direction_t {UP, DOWN, LEFT, RIGHT, NONE} direction_t;
 
 typedef struct remote_char_t
@@ -48,12 +53,12 @@ typedef struct remote_display_msg
 }remote_display_msg;
 
 
-typedef struct msg_subscriber
+typedef struct msg
 {   
     int x_upd;
     int y_upd;
-    char **field;
+    char field[WINDOW_SIZE-2][WINDOW_SIZE-2];
     /* data */
-}msg_subscriber;
+}msg;
 
 

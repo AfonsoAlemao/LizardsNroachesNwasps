@@ -14,8 +14,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define WINDOW_SIZE 20
-#define MAX_LIZARDS 26
+
 
 WINDOW *my_win;
 WINDOW *debug_win;
@@ -24,7 +23,7 @@ WINDOW *stats_win;
 
 int main()
 {
-    msg_subscriber msg;
+    msg msg_subscriber;
     int new = 0, j = 0;
 
     void *context = zmq_ctx_new ();
@@ -90,15 +89,15 @@ int main()
             printf("Wrong password\n");
             exit(0);
         }
-        zmq_recv (subscriber, &msg, sizeof(remote_display_msg), 0);
+        zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
 
 
         if(new == 0) {
             new = 1;
             
-            for (i = 0; i < WINDOW_SIZE; i++) {
-                for(j = 0; j < WINDOW_SIZE; j++) {
-                    ch = msg.field[i][j];
+            for (i = 0; i < WINDOW_SIZE - 2; i++) {
+                for(j = 0; j < WINDOW_SIZE - 2; j++) {
+                    ch = msg_subscriber.field[i][j];
                     wmove(my_win, i, j);
                     waddch(my_win, ch | A_BOLD);
                     wrefresh(my_win);
@@ -106,10 +105,13 @@ int main()
             }
 
         } else {
-            ch = msg.field[msg.x_upd][msg.y_upd];
-            wmove(my_win, msg.x_upd, msg.y_upd);
-            waddch(my_win, ch | A_BOLD);
-            wrefresh(my_win);
+            if (msg_subscriber.x_upd != -1 && msg_subscriber.y_upd != -1) {
+                ch = msg_subscriber.field[msg_subscriber.x_upd][msg_subscriber.y_upd];
+                wmove(my_win, msg_subscriber.x_upd, msg_subscriber.y_upd);
+                waddch(my_win, ch | A_BOLD);
+                wrefresh(my_win);
+            }
+            
         }
 
         free_safe(type);		

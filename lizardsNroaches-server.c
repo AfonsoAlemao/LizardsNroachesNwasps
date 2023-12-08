@@ -17,11 +17,6 @@
 #include "fifo.h"
 #include "remote-char.h"
 
-#define WINDOW_SIZE 20 
-#define MAX_LIZARDS 2
-#define TAIL_SIZE 5
-#define RESPAWN_TIME 5
-
 WINDOW *my_win;
 WINDOW *debug_win;
 WINDOW *stats_win;
@@ -32,6 +27,8 @@ pos_lizards client_lizards[MAX_LIZARDS];
 void *context;
 void *responder;
 void *publisher;
+msg msg_publisher;
+char *password = NULL;
 
 void new_position(int* x, int *y, direction_t direction);
 int find_ch_info(ch_info_t char_data[], int n_char, int ch);
@@ -254,6 +251,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
     new_data.element_type = element_type;
     new_data.index_client = index_client;
     new_data.index_roaches = index_roaches;
+    size_t send1, send2;
 
     if (ch == ' ') {
         // delete from list position xy in field
@@ -310,6 +308,13 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
     wmove(my_win, x, y);
     waddch(my_win, ch | A_BOLD);
     wrefresh(my_win);
+
+    msg_publisher.field[x][y] = ch;
+    send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
+    assert(send1 != -1);
+    send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
+    assert(send2 != -1);
+
 
     return head;
 }
@@ -587,8 +592,18 @@ int main() {
     int rc2 = zmq_bind (publisher, "tcp://127.0.0.1:5560");
     assert(rc2 == 0);
 
+    
+    msg_publisher.x_upd = -1;
+    msg_publisher.y_upd = -1;
+    for (int vv = 0; vv < WINDOW_SIZE - 2; vv++) {
+        for(int uu = 0; uu < WINDOW_SIZE - 2; uu++) {
+            msg_publisher.field[vv][uu] = ' ';
+        }
+    }
+    
+
 	struct termios oldt, newt;
-    char *password = NULL;
+    
     size_t bufsize = 100;
     int ch;
 
@@ -597,6 +612,7 @@ int main() {
     keypad(stdscr, TRUE);   
 	noecho();	
 
+    password = NULL;
     // Allocate memory for the password
     password = (char *)malloc(bufsize * sizeof(char));
     if(password == NULL) {
@@ -638,8 +654,6 @@ int main() {
     // mvwprintw(debug_win, 1, 1, "Your text here");
     // wrefresh(debug_win);
 
-    int ch;
-    int i = 0;
     int max_roaches = floor(((WINDOW_SIZE - 2)*(WINDOW_SIZE - 2))/3);
     int n_clients_roaches = 0;
     int total_roaches = 0;
@@ -659,6 +673,7 @@ int main() {
         free_exit();
         exit(0);
     }
+
     
 
     srand(time(NULL));

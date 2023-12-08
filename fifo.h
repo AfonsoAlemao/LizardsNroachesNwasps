@@ -7,7 +7,7 @@ typedef struct dead_roach
 {
     int index_client;  // index in table of clients with roaches 
     int index_roaches;  // index in table of the client of the roaches. Only used for roaches
-    double death_time;   // death time 
+    int64_t death_time;   // death time 
 
     /* Examples:
 

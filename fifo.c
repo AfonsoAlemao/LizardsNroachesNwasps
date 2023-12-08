@@ -76,7 +76,7 @@ void pop_fifo(fifo_element** head) {
 void printfifo(fifo_element* head) {
     fifo_element* temp = head;
     while (temp != NULL) {
-        printf("Death time %lf ", temp->data.death_time);
+        printf("Death time %ld ", temp->data.death_time);
         printf("Index Client %d ", temp->data.index_client);
         printf("Index Roaches %d ", temp->data.index_roaches);
         temp = temp->next;

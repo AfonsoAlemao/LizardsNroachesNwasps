@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h> 
-#include "zhelpers.h"
+#include "z_helpers.h"
 #include <termios.h>
 #include <unistd.h>
 
@@ -136,9 +136,6 @@ int main(int argc, char *argv[]) {
     // creates a window for debug
     debug_win = newwin(20, 100, WINDOW_SIZE + 1 + MAX_LIZARDS + 1, 0);
 
-    // mvwprintw(stats_win, 1, 1, "pass: %s", password);
-    // wrefresh(stats_win);
-
     while (1) {
         char *type = s_recv (subscriber);
         if(strcmp(type, password) != 0 ) {
@@ -148,10 +145,6 @@ int main(int argc, char *argv[]) {
         }
 
         zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
-
-        // mvwprintw(stats_win, 5, 0, "x=%d, y=%d", msg_subscriber.x_upd, msg_subscriber.y_upd);
-        // wrefresh(stats_win);
-
 
         if(new == 0) {
             new = 1;

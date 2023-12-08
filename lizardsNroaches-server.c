@@ -16,6 +16,7 @@
 #include "lists.h"
 #include "fifo.h"
 #include "auxiliar.h"
+#include "z_helpers.h"
 
 WINDOW *my_win;
 WINDOW *debug_win;
@@ -134,7 +135,7 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
                 client_roaches[current->data.index_client].active[current->data.index_roaches] = false;
 
                 // insert roach in inactive roaches list with associated start_time
-                r.death_time = clock();
+                r.death_time = s_clock();
 
                 r.index_client = current->data.index_client;
                 r.index_roaches = current->data.index_roaches;
@@ -340,9 +341,6 @@ char check_prioritary_element(list_element *head) {
         nextNode = current->next;
         current = nextNode;
     }
-
-    // mvwprintw(debug_win, 1, 1, "%c", winner);
-    // wrefresh(debug_win);
     
     return winner;
 }
@@ -400,16 +398,15 @@ void free3DArray(list_element ***table) {
 }
 
 void ressurect_roaches() {
-    double end_time, inactive_time;
+    int64_t end_time, inactive_time;
 
     while (roaches_killed != NULL) {
-        end_time = clock();
-        inactive_time = 1000 * ((double) (end_time - roaches_killed->data.death_time)) / CLOCKS_PER_SEC; 
-        // TODO improve this
-        // mvwprintw(debug_win, 1, 1, "%lf", inactive_time);
-        // wrefresh(debug_win);
+        end_time = s_clock();
+        inactive_time = (end_time - roaches_killed->data.death_time); 
+        // mvwprintw(stats_win, 1, 1, "%ld", inactive_time);
+        // wrefresh(stats_win);
         
-        if (inactive_time >= RESPAWN_TIME) {
+        if (inactive_time >= RESPAWN_TIME*1000) {
 
             client_roaches[roaches_killed->data.index_client].active[roaches_killed->data.index_roaches] = true;
         
@@ -425,43 +422,7 @@ void ressurect_roaches() {
                 }
             }
 
-            ///////
-            //printar a lista antes de eliminar a barata
-            fifo_element* temp;
-            int kkkk=1;
-
-            // mvwprintw(debug_win, kkkk, 1, "antes de apagar 1ª barata");
-            // wrefresh(debug_win);
-            kkkk++;
-
-            temp=roaches_killed;
-            // kkkk=1;
-            while (temp != NULL) {
-                // mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
-                // temp->data.index_client, temp->data.index_roaches);
-                // wrefresh(debug_win);
-                kkkk += 1;
-                temp = temp->next;
-            }
-
             pop_fifo(&roaches_killed);
-
-            //printar a lista antes de eliminar a barata
-            // mvwprintw(debug_win, kkkk, 1, "depois de apagar barata");
-            // wrefresh(debug_win);
-            kkkk++;
-
-            temp=roaches_killed;
-            while (temp != NULL) {
-                // mvwprintw(debug_win, kkkk, 1, "death_time %lf, Index Client %d, Index Roaches %d", temp->data.death_time,
-                // temp->data.index_client, temp->data.index_roaches);
-                // wrefresh(debug_win);
-                kkkk+=1;
-                temp = temp->next;
-            }
-
-            /////
-            
 
         }      
         else {

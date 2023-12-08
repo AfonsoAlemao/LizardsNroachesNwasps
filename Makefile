@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -O3
 LIBS = -lzmq -lncurses
 
 # Define .PHONY to specify that 'all' and 'clean' are not files.
@@ -29,7 +29,7 @@ lizard_client: lizard-client.c z_helpers.h auxiliar.h
 	$(CC) $(CFLAGS) -o lizard_client lizard-client.c $(LIBS)
 
 # Rule for display-app
-display_app: display-app.c z_helpers.h auxiliar.h
+display_app: display-app.c z_helpers2.h auxiliar.h
 	$(CC) $(CFLAGS) -o display_app display-app.c $(LIBS)
 
 # Rule for cleaning up the build artifacts

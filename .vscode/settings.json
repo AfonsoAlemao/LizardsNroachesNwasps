@@ -17,7 +17,10 @@
     "fifo.h": "c",
     "stat.h": "c",
     "z_helpers.h": "c",
-    "lists.h": "c"
+    "lists.h": "c",
+    "signal.h": "c",
+    "stdarg.h": "c",
+    "z_helpers2.h": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",

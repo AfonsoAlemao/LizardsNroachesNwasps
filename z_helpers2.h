@@ -46,24 +46,24 @@
 //  Receive 0MQ string from socket and convert into C string
 //  Caller must free returned string. Returns NULL if the context
 //  is being terminated.
-// static char *
-// s_recv (void *socket) {
-//     enum { cap = 256 };
-//     char buffer [cap];
-//     int size = zmq_recv (socket, buffer, cap - 1, 0);
-//     if (size == -1)
-//         return NULL;
-//     buffer[size < cap ? size : cap - 1] = '\0';
+static char *
+s_recv (void *socket) {
+    enum { cap = 256 };
+    char buffer [cap];
+    int size = zmq_recv (socket, buffer, cap - 1, 0);
+    if (size == -1)
+        return NULL;
+    buffer[size < cap ? size : cap - 1] = '\0';
 
-// #if (defined (WIN32))
-//     return strdup (buffer);
-// #else
-//     return strndup (buffer, sizeof(buffer) - 1);
-// #endif
+#if (defined (WIN32))
+    return strdup (buffer);
+#else
+    return strndup (buffer, sizeof(buffer) - 1);
+#endif
 
-//     // remember that the strdup family of functions use malloc/alloc for space for the new string.  It must be manually
-//     // freed when you are done with it.  Failure to do so will allow a heap attack.
-// }
+    // remember that the strdup family of functions use malloc/alloc for space for the new string.  It must be manually
+    // freed when you are done with it.  Failure to do so will allow a heap attack.
+}
 
 //  Convert C string to 0MQ string and send to socket
 // static int
@@ -162,19 +162,19 @@
 // }
 
 //  Return current system clock as milliseconds
-static int64_t
-s_clock (void)
-{
-#if (defined (WIN32))
-    SYSTEMTIME st;
-    GetSystemTime (&st);
-    return (int64_t) st.wSecond * 1000 + st.wMilliseconds;
-#else
-    struct timeval tv;
-    gettimeofday (&tv, NULL);
-    return (int64_t) (tv.tv_sec * 1000 + tv.tv_usec / 1000);
-#endif
-}
+// static int64_t
+// s_clock (void)
+// {
+// #if (defined (WIN32))
+//     SYSTEMTIME st;
+//     GetSystemTime (&st);
+//     return (int64_t) st.wSecond * 1000 + st.wMilliseconds;
+// #else
+//     struct timeval tv;
+//     gettimeofday (&tv, NULL);
+//     return (int64_t) (tv.tv_sec * 1000 + tv.tv_usec / 1000);
+// #endif
+// }
 
 //  Print formatted string to stdout, prefixed by date/time and
 //  terminated with a newline.

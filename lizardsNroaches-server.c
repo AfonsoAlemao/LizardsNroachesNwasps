@@ -191,12 +191,10 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
             // delete from list position xy in field
             deletelist_element(&head, new_data);
 
-            // verificar se nesta posiçao existem mais elementos? se existirem display = True
             if (head != NULL) {
                 ch = check_prioritary_element(head); 
             }
-            
-            
+                  
         }
         else {
             // add to list position xy in field    
@@ -211,10 +209,6 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
                 ch = check_prioritary_element(head);
             }
 
-            // se for um lizard:
-            //  verificar se a tua cabeça coincide com:
-            //      - uma barata (comer barata), ou seja vai aumentar o seu score, e a barata desaparece 5 segundos e reaparece aleatoriamente
-            //      - uma tail: repartir os pontos de ambos os lizards
             if (element_type == 1) {
                 search_and_destroy_roaches(head, index_client);
             }
@@ -406,11 +400,10 @@ void ressurect_roaches() {
         // mvwprintw(stats_win, 1, 1, "%ld", inactive_time);
         // wrefresh(stats_win);
         
-        if (inactive_time >= RESPAWN_TIME*1000) {
-
+        /* This would be done even better with threads */
+        if (inactive_time >= RESPAWN_TIME) {
             client_roaches[roaches_killed->data.index_client].active[roaches_killed->data.index_roaches] = true;
         
-            
             while (1) {
                 client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_x = rand() % (WINDOW_SIZE - 2) + 1;
                 client_roaches[roaches_killed->data.index_client].char_data[roaches_killed->data.index_roaches].pos_y = rand() % (WINDOW_SIZE - 2) + 1;
@@ -474,8 +467,6 @@ int main() {
         free_exit();
         exit(0);
     }
-
-    //
 
     char port_display[MAX_PORT_STR_LEN], port_client[MAX_PORT_STR_LEN];
     char full_address_display[FULL_ADDRESS_LEN], full_address_client[FULL_ADDRESS_LEN];
@@ -820,8 +811,6 @@ int main() {
                 continue;
             }
 
-
-
             index_of_position_to_insert = -1;
             for (jj = 0; jj < MAX_LIZARDS; jj++) {
                 if (!client_lizards[jj].valid) {
@@ -877,7 +866,7 @@ int main() {
         else if(m.msg_type == 3){
             uint32_t index_client_lizards_id = 0;
 
-            for(int jjj = 0; jjj < MAX_LIZARDS;jjj++) {
+            for (int jjj = 0; jjj < MAX_LIZARDS;jjj++) {
                 if(client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
@@ -951,7 +940,7 @@ int main() {
 
             uint32_t index_client_lizards_id = 0;
 
-            for(int jjj = 0; jjj < MAX_LIZARDS; jjj++) {
+            for (int jjj = 0; jjj < MAX_LIZARDS; jjj++) {
                 if(client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
@@ -976,11 +965,8 @@ int main() {
 
             client_lizards[index_client_lizards_id].valid = false;
             total_lizards--;
-
         }
-
         display_stats();
-        	
     }
     /* End curses mode */
     free_exit();

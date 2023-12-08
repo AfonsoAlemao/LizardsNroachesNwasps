@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <assert.h> 
 #include "zhelpers.h"
+#include <termios.h>
+#include <unistd.h>
 
 #define WINDOW_SIZE 15 
 
@@ -60,7 +62,7 @@ int find_ch_info(ch_info_t char_data[], int n_char, int ch){
 }
 
 int main()
-{	
+{
        
     //STEP 2
     remote_display_msg msg_subscriber;
@@ -72,19 +74,53 @@ int main()
     void *subscriber = zmq_socket (context, ZMQ_SUB);
     zmq_connect (subscriber, "tcp://127.0.0.1:5558");
     assert(subscriber != NULL);
-    zmq_setsockopt (subscriber, ZMQ_SUBSCRIBE, "position", strlen("position"));
+    
+    struct termios oldt, newt;
+    char *password = NULL;
+    size_t bufsize = 100;
+    int ch;
 
-	initscr();		    	
+    initscr();		    	
 	cbreak();				
-    keypad(stdscr, true);   
-	noecho();			    
+    keypad(stdscr, TRUE);   
+	noecho();	
+
+    // Allocate memory for the password
+    password = (char *)malloc(bufsize * sizeof(char));
+    if(password == NULL) {
+        perror("Unable to allocate memory");
+        exit(1);
+    }
+
+    // Turn off echoing of characters
+    tcgetattr(STDIN_FILENO, &oldt); // get current terminal attributes
+    newt = oldt;
+    newt.c_lflag &= ~(ECHO); // turn off ECHO
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // Read password
+    printw("Enter password: ");
+    refresh();
+
+    int i = 0;
+    while(i < 99 && (ch = getch()) != '\n') {
+        password[i++] = ch;
+        // addch('*'); // Display an asterisk for each character
+        
+    }
+
+    password[i] = '\0'; // Null-terminate the string
+
+    // Restore terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+    zmq_setsockopt (subscriber, ZMQ_SUBSCRIBE, password, strlen(password));		    
 
     /* creates a window and draws a border */
     WINDOW * my_win = newwin(WINDOW_SIZE, WINDOW_SIZE, 0, 0);
     box(my_win, 0 , 0);	
 	wrefresh(my_win);
 
-    int ch;
     int pos_x;
     int pos_y;
 
@@ -94,6 +130,10 @@ int main()
     while (1)
     {
         char *type = s_recv (subscriber);
+        if(strcmp(type, password) != 0 ) {
+            printf("Wrong password\n");
+            exit(0);
+        }
         zmq_recv (subscriber, &msg_subscriber, sizeof(remote_display_msg), 0);
 
 
@@ -160,6 +200,8 @@ int main()
   	endwin();			/* End curses mode		  */
     zmq_close (subscriber);
     zmq_ctx_destroy (context);
+    // Free the allocated memory
+    free(password);
 
 	return 0;
 }

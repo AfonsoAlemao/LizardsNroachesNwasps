@@ -467,8 +467,8 @@ void free_exit() {
     password = free_safe(password);
 }
 
-int main() {
-    char port_display[MAX_PORT_STR_LEN], port_client[MAX_PORT_STR_LEN];
+int main(int argc, char *argv[]) {
+    char *port_display, *port_client;
     char full_address_display[FULL_ADDRESS_LEN], full_address_client[FULL_ADDRESS_LEN];
     remote_char_t m;
     size_t send1, send2, bufsize = 100, send, recv;
@@ -481,6 +481,12 @@ int main() {
     int pos_x_roaches_aux, pos_y_roaches_aux, pos_x_lizards_aux, pos_y_lizards_aux;
     uint32_t index_client_roaches_id, index_client_lizards_id;
 
+    /* Check if the correct number of arguments is provided */
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <client-port> <display-port>\n", argv[0]);
+        return 1;
+    }
+
     end_game = 0;
 
     field = allocate3DArray();
@@ -490,17 +496,7 @@ int main() {
         exit(0);
     }
 
-    /* Ask the user to enter the port for the client app */
-    printf("Port for client app: ");
-    if (fgets(port_client, sizeof(port_client), stdin) != NULL) {
-        /* Remove the newline character from the end, if it exists */
-        port_client[strcspn(port_client, "\n")] = 0;
-    } else {
-        /* Handle input error */
-        fprintf(stderr, "Error reading input.\n");
-        free_exit();
-        exit(0);
-    }
+    port_client = argv[1];
     /* Validate the port client number */
     if (strlen(port_client) > 5 || atoi(port_client) <= 0 || atoi(port_client) > 65535) {
         fprintf(stderr, "Invalid port number. Please provide a number between 1 and 65535.\n");
@@ -510,17 +506,7 @@ int main() {
     /* Format the full address for the client */
     snprintf(full_address_client, sizeof(full_address_client), "tcp://*:%s", port_client);
 
-    /* Ask the user to enter the port for the display app */
-    printf("Port for display app: ");
-    if (fgets(port_display, sizeof(port_display), stdin) != NULL) {
-        /* Remove the newline character from the end, if it exists */
-        port_display[strcspn(port_display, "\n")] = 0;
-    } else {
-        /* Handle input error */
-        fprintf(stderr, "Error reading input.\n");
-        free_exit();
-        exit(0);
-    }
+    port_display = argv[2];
     /* Validate the port number */
     if (strlen(port_display) > 5 || atoi(port_display) <= 0 || atoi(port_display) > 65535) {
         fprintf(stderr, "Invalid port number. Please provide a number between 1 and 65535.\n");
@@ -529,6 +515,8 @@ int main() {
     }
     /* Format the full address for the display */
     snprintf(full_address_display, sizeof(full_address_display), "tcp://*:%s", port_display);
+
+    printf("%s, %s", full_address_client, full_address_display);
 
     context = zmq_ctx_new ();
     assert(context != NULL);

@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
         usleep(sleep_delay);
         
         /* For each roach, choose next direction (including a non-movement) randomly */
-        for (kk = 0; kk < nRoaches; kk++){
+        for (kk = 0; kk < nRoaches; kk++) {
           m.direction[kk] = random() % 5;  
         }
 

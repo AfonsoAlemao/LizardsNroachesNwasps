@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
             /* Message type for user disconnection */
             m.msg_type = 4;
         }
-        if (key != 'x'){
+        if (key != 'x') {
             /* Send movement to server */
             send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
             assert(send != -1);

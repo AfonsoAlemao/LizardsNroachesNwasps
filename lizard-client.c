@@ -26,12 +26,13 @@ uint32_t hash_function(const char *str) {
 /* Free allocated memory if an error occurs */
 void free_exit_l() {
     zmq_close (requester);
-    zmq_ctx_destroy (context);
+    int rc = zmq_ctx_destroy (context);
+    assert(rc == 0);
 }
 
 int main(int argc, char *argv[]) {
     char *server_address, full_address[60], id_string[60], char_ok;
-    int port, ok = 0, n = 0, disconnect = 0, key;
+    int port, ok = 0, n = 0, disconnect = 0, key, rc;
     uint32_t id_int;
     remote_char_t m;
     double my_score = 0;
@@ -57,10 +58,11 @@ int main(int argc, char *argv[]) {
     id_int = hash_function(id_string);
     sprintf(full_address, "tcp://%s:%d", server_address, port);
  
-    context = zmq_ctx_new ();
+    context = zmq_ctx_new();
+    assert(context != NULL);
     requester = zmq_socket (context, ZMQ_REQ);
     assert(requester != NULL);
-    int rc = zmq_connect (requester, full_address);
+    rc = zmq_connect (requester, full_address);
     assert(rc == 0);
 
     /* Send connection message */

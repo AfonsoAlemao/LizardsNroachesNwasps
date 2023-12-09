@@ -458,7 +458,8 @@ void free_exit() {
     endwin();
     zmq_close (responder);
     zmq_close(publisher);
-    zmq_ctx_destroy (context);
+    int rc = zmq_ctx_destroy (context);
+    assert(rc == 0);
     client_roaches = free_safe(client_roaches);
     free3DArray(field);
     password = free_safe(password);

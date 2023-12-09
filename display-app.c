@@ -46,7 +46,8 @@ void display_stats(pos_lizards *client_lizards) {
 /* Free allocated memory if an error occurs */
 void free_exit_display() {
     zmq_close (subscriber);
-    zmq_ctx_destroy (context);
+    int rc = zmq_ctx_destroy(context);
+    assert(rc == 0);
     free_safe_d(password);
     delwin(stats_win);
     delwin(debug_win);
@@ -75,7 +76,7 @@ int main(int argc, char *argv[]) {
     msg msg_subscriber;
     int new = 0, j = 0, ch, i = 0;
     struct termios oldt, newt;
-    size_t bufsize = 100;
+    size_t bufsize = 100, rcv;
     char *type;
 
     snprintf(id_string, sizeof(id_string), "%s:%s", server_address, argv[2]);
@@ -84,6 +85,7 @@ int main(int argc, char *argv[]) {
     context = zmq_ctx_new ();
     assert(context != NULL);
     subscriber = zmq_socket (context, ZMQ_SUB);
+    assert(subscriber != NULL);
     zmq_connect (subscriber, full_address);
     assert(subscriber != NULL);
     
@@ -121,7 +123,8 @@ int main(int argc, char *argv[]) {
     /* Restore terminal settings */
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 
-    zmq_setsockopt (subscriber, ZMQ_SUBSCRIBE, password, strlen(password));		    
+    int rc = zmq_setsockopt (subscriber, ZMQ_SUBSCRIBE, password, strlen(password));		    
+    assert(rc == 0);
 
     /* Creates a window and draws a border */
     my_win = newwin(WINDOW_SIZE, WINDOW_SIZE, 0, 0);
@@ -142,7 +145,8 @@ int main(int argc, char *argv[]) {
             free_exit_display();
             exit(0);
         }
-        zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
+        rcv = zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
+        assert(rcv != -1);
 
         /* When display-app receives data for the first time, it must display 
         the whole field game and update the lizard stats */

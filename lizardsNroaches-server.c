@@ -130,6 +130,7 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
 
                 /* Insert roach in inactive roaches list with associated death time */
                 r.death_time = s_clock();
+                assert(r.death_time >= 0);
                 r.index_client = current->data.index_client;
                 r.index_roaches = current->data.index_roaches;
                 check = push_fifo(&roaches_killed, r);
@@ -397,6 +398,7 @@ void ressurect_roaches() {
     which can be ressurected */
     while (roaches_killed != NULL) {
         end_time = s_clock();
+        assert(end_time >= 0);
         /* Compute their downtime and compare it with respawn time*/
         inactive_time = (end_time - roaches_killed->data.death_time); 
 

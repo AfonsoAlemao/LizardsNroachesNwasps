@@ -140,6 +140,7 @@ int main(int argc, char *argv[]) {
     while (1) {
         /* Receives message from publisher if the subscriber password matches the topic published */
         type = s_recv (subscriber);
+        assert(type != NULL);
         if (strcmp(type, password) != 0 ) {
             printf("Wrong password\n");
             free_exit_display();

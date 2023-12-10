@@ -9,9 +9,11 @@ This project comprises several components meant to interact with each other. Bel
 
 ### Parameters:
 **n**: Port number for both the roaches_client and lizard_client
+
 **m**: Port number for the display_app
 
-### Define the publisher password within the server for broadcasting to the display application.
+### At runtime:
+Define the publisher password within the server for broadcasting to the display application.
 
 
 ## display_app
@@ -20,10 +22,13 @@ This project comprises several components meant to interact with each other. Bel
 ```./display_app c_ip m```
 
 ### Parameters:
+
 **c_ip**: IP address for the display application
+
 **m**: Port number for the display application
 
-### Insert the subscriber password within the display application for receiving data from the server.
+### At runtime:
+Insert the subscriber password within the display application for receiving data from the server.
 
 
 ## roaches_client
@@ -33,9 +38,11 @@ This project comprises several components meant to interact with each other. Bel
 
 ### Parameters:
 **c_ip**: Client IP address
+
 **n**: Port number for both the roaches_client and lizard_client
 
-### Define the number of roaches within the specified range.
+### At runtime:
+Define the number of roaches within the specified range.
 
 
 ## lizard_client
@@ -45,5 +52,6 @@ This project comprises several components meant to interact with each other. Bel
 
 ### Parameters:
 **c_ip**: Client IP address
+
 **n**: Port number for both the roaches_client and lizard_client
 

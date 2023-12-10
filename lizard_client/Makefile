@@ -9,7 +9,7 @@ LIBS = -lzmq -lncurses
 all: lizard_client 
 
 # Rule for building lizard_client
-lizard_client: lizard-client.c z_helpers.h auxiliar.h
+lizard_client: lizard-client.c auxiliar.h
 	$(CC) $(CFLAGS) -o lizard_client lizard-client.c $(LIBS)
 
 # Rule for cleaning up the build artifacts

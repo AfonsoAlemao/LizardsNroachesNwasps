@@ -9,7 +9,7 @@ LIBS = -lzmq -lncurses
 all: roaches_client
 
 # Rule for building roaches_client
-roaches_client: roaches-client.c z_helpers.h auxiliar.h
+roaches_client: roaches-client.c auxiliar.h
 	$(CC) $(CFLAGS) -o roaches_client roaches-client.c $(LIBS)
 
 # Rule for cleaning up the build artifacts

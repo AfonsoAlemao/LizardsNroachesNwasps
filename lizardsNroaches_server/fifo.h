@@ -2,6 +2,7 @@
 #define fifo_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Stores a dead roach */
 typedef struct dead_roach 

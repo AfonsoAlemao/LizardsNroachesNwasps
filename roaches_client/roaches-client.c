@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 
     /* Check if the correct number of arguments is provided */
     if (argc != 3) {
-        fprintf(stderr, "Usage: %s <server-address> <port>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <client-address> <client-port>\n", argv[0]);
         return 1;
     }
 

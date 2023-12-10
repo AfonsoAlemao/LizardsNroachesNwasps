@@ -5,12 +5,12 @@ This project comprises several components meant to interact with each other. Bel
 ## lizardsNroaches_server
 
 ### Usage:
-```./lizardsNroaches_server n m```
+```./lizardsNroaches_server <client-port> <display-port>```
 
 ### Parameters:
-**n**: Port number for both the roaches_client and lizard_client
+**client-port**: Port number for both the roaches_client and lizard_client
 
-**m**: Port number for the display_app
+**display-port**: Port number for the display_app
 
 ### At runtime:
 Define the publisher password within the server for broadcasting to the display application.
@@ -19,13 +19,13 @@ Define the publisher password within the server for broadcasting to the display 
 ## display_app
 
 ### Usage:
-```./display_app c_ip m```
+```./display_app <display-address> <display-port>```
 
 ### Parameters:
 
-**c_ip**: IP address for the display application
+**display-address**: IP address for the display application
 
-**m**: Port number for the display application
+**display-port**: Port number for the display application
 
 ### At runtime:
 Insert the subscriber password within the display application for receiving data from the server.
@@ -34,12 +34,12 @@ Insert the subscriber password within the display application for receiving data
 ## roaches_client
 
 ### Usage:
-```./roaches_client c_ip n```
+```./roaches_client <client-address> <client-port>```
 
 ### Parameters:
-**c_ip**: Client IP address
+**client-address**: Client IP address
 
-**n**: Port number for both the roaches_client and lizard_client
+**client-port**: Port number for both the roaches_client and lizard_client
 
 ### At runtime:
 Define the number of roaches within the specified range.
@@ -48,10 +48,12 @@ Define the number of roaches within the specified range.
 ## lizard_client
 
 ### Usage:
-```./lizard_client c_ip n```
+```./lizard_client <client-address> <client-port>```
 
 ### Parameters:
-**c_ip**: Client IP address
+**client-address**: Client IP address
 
-**n**: Port number for both the roaches_client and lizard_client
+**client-port**: Port number for both the roaches_client and lizard_client
 
+### At runtime:
+Control the assigned lizard with the arrow keys. To disconnect from the game press "Q" or "q".

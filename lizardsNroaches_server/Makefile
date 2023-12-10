@@ -6,7 +6,7 @@ LIBS = -lzmq -lncurses
 .PHONY: all clean
 
 # 'all' is the default target. It depends on the binaries that need to be built.
-all: lizardsNroaches_server roaches_client lizard_client display_app
+all: lizardsNroaches_server
 
 # Rule for building lizardsNroaches_server
 lizardsNroaches_server: lizardsNroaches-server.c lists.o fifo.o z_helpers.h auxiliar.h lists.h fifo.h
@@ -20,18 +20,6 @@ lists.o: lists.c lists.h
 fifo.o: fifo.c fifo.h
 	$(CC) $(CFLAGS) -c fifo.c
 
-# Rule for building roaches_client
-roaches_client: roaches-client.c z_helpers.h auxiliar.h
-	$(CC) $(CFLAGS) -o roaches_client roaches-client.c $(LIBS)
-
-# Rule for building lizard_client
-lizard_client: lizard-client.c z_helpers.h auxiliar.h
-	$(CC) $(CFLAGS) -o lizard_client lizard-client.c $(LIBS)
-
-# Rule for display-app
-display_app: display-app.c z_helpers2.h auxiliar.h
-	$(CC) $(CFLAGS) -o display_app display-app.c $(LIBS)
-
 # Rule for cleaning up the build artifacts
 clean:
-	rm -f lizardsNroaches_server roaches_client lizard_client display_app lists.o fifo.o
+	rm -f lizardsNroaches_server lists.o fifo.o

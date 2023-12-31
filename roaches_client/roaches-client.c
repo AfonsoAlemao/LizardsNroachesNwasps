@@ -74,21 +74,23 @@ int main(int argc, char *argv[]) {
     rc = zmq_connect (requester, full_address);
     assert(rc == 0);
 
-    /* Ask the user for the size of the roaches array */
-    printf("How many roaches (1 to 10)? ");
-    if (scanf("%d", &nRoaches) != 1) {
-        fprintf(stderr, "Invalid input.\n");
-        free_exit_r();
-        exit(0);
-    }
-    
-    /* Validate the input */
-    while (nRoaches < 1 || nRoaches > 10) {
-        printf("\nInvalid input. Please enter a number in the range 1 to 10: ");
-        if (scanf("%d", &nRoaches) != 1) {
-            fprintf(stderr, "Invalid input.\n");
-            free_exit_r();
-            exit(0);
+    while (1) {
+        printf("How many roaches (1 to 10)? ");
+        if (scanf("%d", &nRoaches) != 1 || getchar() != '\n') {
+            // Invalid input (not an integer)
+            fprintf(stderr, "Invalid input. Please enter a valid integer.\n");
+
+            // Clear the input buffer
+            while (getchar() != '\n');
+
+            // Ask the user again
+            printf("How many roaches (1 to 10)? ");
+        } else if (nRoaches < 1 || nRoaches > 10) {
+            // Invalid input (integer out of range)
+            fprintf(stderr, "Invalid input. Please enter a number in the range 1 to 10.\n");
+        } else {
+            // Valid input, break out of the loop
+            break;
         }
     }
 

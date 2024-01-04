@@ -186,6 +186,7 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
 void update_lizards() {
     for (int i = 0; i < MAX_LIZARDS; i++) {
         msg_publisher.lizards[i].valid = client_lizards[i].valid;
+        msg_publisher.lizards[i].alive = client_lizards[i].alive;
         msg_publisher.lizards[i].score = client_lizards[i].score;
         msg_publisher.lizards[i].char_data.ch = client_lizards[i].char_data.ch;
     }
@@ -215,9 +216,6 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
         }
         else {
             /* Add to list position xy in field */
-            if (element_type == 4) {
-                new_data.index_client = (int) ch; // enconde char
-            }
             check = insertBegin(&head, new_data);
             if (!check) {
                 fprintf(stderr, "Memory allocation failed\n");
@@ -384,7 +382,7 @@ char check_prioritary_element(list_element *head) {
             winner_type = 0;
         }
         else if (current->data.element_type == 4 && winner_type == -1) {
-            winner = (char) current->data.index_client;
+            winner = client_lizards[current->data.index_client].char_data.ch;
         }
         nextNode = current->next;
         current = nextNode;
@@ -498,13 +496,18 @@ void display_stats() {
             mvwprintw(stats_win, j, 1, "\t\t\t\t\t");
             wrefresh(stats_win);
             if (client_lizards[j].valid) {
-                mvwprintw(stats_win, i, 1, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
-                wrefresh(stats_win);
+                if (client_lizards[j].alive) {
+                    mvwprintw(stats_win, i, 1, "Player %c: Score = %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
+                    wrefresh(stats_win);
+                }
+                else {
+                    mvwprintw(stats_win, i, 1, "Player %c: Lost!", client_lizards[j].char_data.ch);
+                    wrefresh(stats_win);
+                }
                 i++;
             }
         }
     }
-    
 }
 
 /* Free allocated memory if an error occurs */
@@ -545,8 +548,7 @@ void loser_lizard(int index) {
         index_bot, element_type, field[pos_x][pos_y]);
 
     /* Inactivate lizard, and decrement number of lizards */
-    client_lizards[index].valid = false;
-    total_lizards--;
+    client_lizards[index].alive = false;
 
     // Add fake head to field
     element_type = 4; // fake lizard head
@@ -693,16 +695,15 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-
     srand(time(NULL));
 
-    /* Initialize client_lizards and client_roaches */
+    /* Initialize client_lizards, client_roaches and client_wasps */
     for (i = 0; i < MAX_LIZARDS; i++) {
         client_lizards[i].id = -1;
         client_lizards[i].valid = false;
+        client_lizards[i].alive = false;
         client_lizards[i].score = 0;
         client_lizards[i].char_data.ch = '?';
-        
     }
     for (i = 0; i < max_bots; i++) {
         client_roaches[i].id = -1;
@@ -731,7 +732,7 @@ int main(int argc, char *argv[]) {
         
         
         if (m.msg_type == 0) { /* Connection from roach client */
-            /* Testing if roach max number allows new roach clien */
+            /* Testing if roach max number allows new roach client */
             if (m.nChars + total_roaches + total_wasps > max_bots) {
                 ok = 0;
                 send = zmq_send (responder, &ok, sizeof(int), 0);
@@ -948,6 +949,7 @@ int main(int argc, char *argv[]) {
                 client_lizards[index_of_position_to_insert].id = m.id;
                 client_lizards[index_of_position_to_insert].score = 0;
                 client_lizards[index_of_position_to_insert].valid = true;
+                client_lizards[index_of_position_to_insert].alive = true;
 
                 /* Compute lizard initial random position */
                 while (1) {
@@ -998,7 +1000,7 @@ int main(int argc, char *argv[]) {
             /* Find lizard in client_lizards from its id */
             index_client_lizards_id = -1;
             for (int jjj = 0; jjj < MAX_LIZARDS; jjj++) {
-                if (client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
+                if (client_lizards[jjj].id == m.id && client_lizards[jjj].valid && client_lizards[jjj].alive) {
                     index_client_lizards_id = jjj;
                     break;
                 }
@@ -1102,17 +1104,26 @@ int main(int argc, char *argv[]) {
                 pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
                 ch = client_lizards[index_client_lizards_id].char_data.ch;
 
-                /* Remove lizard tail from the playing field in the old position */
-                tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
-                    true, index_client_lizards_id);
+                if (client_lizards[index_client_lizards_id].alive) {
+                    /* Remove lizard tail from the playing field in the old position */
+                    tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
+                        true, index_client_lizards_id);
+                }
 
                 index_client = index_client_lizards_id;
                 index_bot = -1;  
                 element_type = 1;
 
-                /* Remove roach from the playing field in old position */
-                field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
-                    index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+                if (client_lizards[index_client_lizards_id].alive) {
+                    /* Remove roach from the playing field in old position */
+                    field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+                        index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+                }
+                else {
+                    element_type = 4;
+                    field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+                        index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+                }
 
                 /* Inactivate lizard, and decrement number of lizards */
                 client_lizards[index_client_lizards_id].valid = false;

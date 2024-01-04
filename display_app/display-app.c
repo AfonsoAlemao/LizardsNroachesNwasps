@@ -36,8 +36,14 @@ void display_stats(pos_lizards *client_lizards) {
         mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
         wrefresh(stats_win);
         if (client_lizards[j].valid) {
-            mvwprintw(stats_win, i, 0, "Player: %c, Score: %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
-            wrefresh(stats_win);
+            if (client_lizards[j].alive) {
+                mvwprintw(stats_win, i, 1, "Player %c: Score = %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
+                wrefresh(stats_win);
+            }
+            else {
+                mvwprintw(stats_win, i, 1, "Player %c: Lost!", client_lizards[j].char_data.ch);
+                wrefresh(stats_win);
+            }
             i++;
         }
     }

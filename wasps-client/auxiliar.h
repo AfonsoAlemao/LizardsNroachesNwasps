@@ -46,7 +46,7 @@ typedef struct pos_lizards
     ch_info_t char_data;
     direction_t prevdirection;
     bool valid;
-
+    bool alive;
 } pos_lizards;
 
 

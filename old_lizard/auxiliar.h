@@ -5,10 +5,9 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define WINDOW_SIZE 20
+#define WINDOW_SIZE 20 
 #define MAX_LIZARDS 26
 #define MAX_ROACHES_PER_CLIENT 10
-#define MAX_WASPS_PER_CLIENT 10
 #define TAIL_SIZE 5
 #define RESPAWN_TIME 5000 /* ms */
 #define POINTS_TO_WIN 50
@@ -49,7 +48,6 @@ typedef struct pos_lizards
     bool valid;
     bool alive;
 } pos_lizards;
-
 
 typedef struct remote_display_msg
 {   

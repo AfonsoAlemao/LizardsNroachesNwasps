@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
     }
     
     /* Send connection message */
-    m.msg_type = 0;
+    m.msg_type = 6;
     m.nChars = nwasps;
     m.id = id_int;
 
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
         }
 
         /* wasps movement message type */
-        m.msg_type = 1;
+        m.msg_type = 7;
 
         /* Send the movement message */
         send = zmq_send (requester, &m, sizeof(remote_char_t), 0);

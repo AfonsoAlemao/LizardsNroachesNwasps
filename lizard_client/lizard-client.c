@@ -144,13 +144,21 @@ int main(int argc, char *argv[]) {
             assert(recv != -1);
 
             if (my_score == -1) { /* The request was not fullfilled */
-                printf("Connection failed\n");
+                mvprintw(4, 0, "Connection failed!\t\t\t\n");
                 free_exit_l();
                 exit(0);
             }
+            else if (my_score == -1000) { /* The request was not fullfilled */
+                mvprintw(4, 0, "You have lost!\t\t\t\n");
+                // free_exit_l();
+                // exit(0);
+            }
+            else {
+                /* From server response, update user score */
+                mvprintw(4, 0, "Your score is %lf", my_score);
+            }
 
-            /* From server response, update user score */
-            mvprintw(4, 0, "Your score is %lf", my_score);
+            
         }
         refresh(); /* Print it on to the real screen */
     } while(key != 27 && key != 'Q' && key != 'q');

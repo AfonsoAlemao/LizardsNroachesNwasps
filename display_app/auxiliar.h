@@ -46,9 +46,7 @@ typedef struct pos_lizards
     ch_info_t char_data;
     direction_t prevdirection;
     bool valid;
-
 } pos_lizards;
-
 
 typedef struct remote_display_msg
 {   
@@ -56,7 +54,6 @@ typedef struct remote_display_msg
     ch_info_t char_data[100];
     int n_chars;
 }remote_display_msg;
-
 
 typedef struct msg
 {   

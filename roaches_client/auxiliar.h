@@ -30,14 +30,14 @@ typedef struct ch_info_t
     int pos_x, pos_y;
 } ch_info_t;
 
-typedef struct pos_roaches
+typedef struct pos_roachesNwasps
 {
     uint32_t id;
     ch_info_t char_data[10];
     int nChars; 
     bool active[10];
     bool valid;
-} pos_roaches;
+} pos_roachesNwasps;
 
 typedef struct pos_lizards
 {

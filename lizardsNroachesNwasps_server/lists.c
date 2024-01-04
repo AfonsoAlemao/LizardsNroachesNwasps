@@ -38,7 +38,7 @@ bool insertBegin(list_element** head, square data) {
 int compare(square data1, square data2) {
     if (data1.element_type == data2.element_type &&
         data1.index_client == data2.index_client &&
-        data1.index_roaches == data2.index_roaches) {
+        data1.index_bot == data2.index_bot) {
         return 0;
     }
     return 1;
@@ -80,7 +80,7 @@ void printList(list_element* head) {
     while (temp != NULL) {
         printf("Element Type %d ", temp->data.element_type);
         printf("Index Client %d ", temp->data.index_client);
-        printf("Index Roaches %d ", temp->data.index_roaches);
+        printf("Index Roaches %d ", temp->data.index_bot);
         temp = temp->next;
     }
     printf("\n");

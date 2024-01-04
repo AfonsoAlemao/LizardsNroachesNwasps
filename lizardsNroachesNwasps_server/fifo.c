@@ -44,7 +44,7 @@ bool insertEnd_fifo(fifo_element** head, dead_roach data) {
 int compare_fifo(dead_roach data1, dead_roach data2) {
     if (data1.death_time == data2.death_time &&
         data1.index_client == data2.index_client &&
-        data1.index_roaches == data2.index_roaches) {
+        data1.index_bot == data2.index_bot) {
         return 0;
     }
     return 1;
@@ -77,7 +77,7 @@ void printfifo(fifo_element* head) {
     while (temp != NULL) {
         printf("Death time %ld ", temp->data.death_time);
         printf("Index Client %d ", temp->data.index_client);
-        printf("Index Roaches %d ", temp->data.index_roaches);
+        printf("Index Roaches %d ", temp->data.index_bot);
         temp = temp->next;
     }
     printf("\n");

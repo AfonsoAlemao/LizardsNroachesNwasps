@@ -7,8 +7,8 @@
 /* Stores a dead roach */
 typedef struct dead_roach 
 {
-    int index_client;  /* Roach stored in roachtable[index_client].char_data[index_roaches] */
-    int index_roaches;  
+    int index_client;  /* Roach stored in roachtable[index_client].char_data[index_bot] */
+    int index_bot;  
     int64_t death_time;   /* Death time */
 }dead_roach;
 

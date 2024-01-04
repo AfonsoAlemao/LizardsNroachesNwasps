@@ -6,19 +6,19 @@
 typedef struct square 
 {
     int index_client;  /* Index in table of clients with roaches or in table of lizards  */
-    int index_roaches;  /* Index in table of the client of the roaches. Only used for roaches */
-    int element_type;   /* 0-tail of lizard, 1-lizard head, 2-roach */
+    int index_bot;  /* Index in table of the client of the roaches. Only used for roaches */
+    int element_type;   /* 0-tail of lizard, 1-lizard head, 2-roach, 3-wasp */
 
     /* Examples:
     lizard stored in lizardtable[index_client]: 
-        index_roaches=don't care
+        index_bot=don't care
         element_type=1
 
     tail of lizard stored in lizardtable[index_client]: 
-        index_roaches=don't care
+        index_bot=don't care
         element_type=0
 
-    roach stored in roachtable[index_client].char_data[index_roaches]: 
+    roach stored in roachtable[index_client].char_data[index_bot]: 
         element_type=2
     */
 }square;

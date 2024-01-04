@@ -9,9 +9,13 @@ LIBS = -lzmq -lncurses
 all: lizard_client 
 
 # Rule for building lizard_client
-lizard_client: lizard-client.c auxiliar.h
+lizard_client: lizard-client.c auxiliar.h lizards.pb-c.o
 	$(CC) $(CFLAGS) -o lizard_client lizard-client.c $(LIBS)
+
+# Rule for compiling lizards.pb-c.c to an object file
+lizards.pb-c.o: ../lizards.pb-c.c ../lizards.pb-c.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Rule for cleaning up the build artifacts
 clean:
-	rm -f lizard_client 
+	rm -f lizard_client lizards.pb-c.o

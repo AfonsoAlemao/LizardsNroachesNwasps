@@ -9,9 +9,13 @@ LIBS = -lzmq -lncurses
 all: wasps_client
 
 # Rule for building roaches_client
-wasps_client: wasps-client.c auxiliar.h
-	$(CC) $(CFLAGS) -o wasps_client wasps-client.c $(LIBS)
+wasps_client: wasps-client.c ../lizards.pb-c.c auxiliar.h  lizards.pb-c.o
+	$(CC) $(CFLAGS) -o wasps_client ../lizards.pb-c.c wasps-client.c $(LIBS)
+
+# Rule for compiling lizards.pb-c.c to an object file
+lizards.pb-c.o: ../lizards.pb-c.c ../lizards.pb-c.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Rule for cleaning up the build artifacts
 clean:
-	rm -f wasps_client
+	rm -f wasps_client lizards.pb-c.o

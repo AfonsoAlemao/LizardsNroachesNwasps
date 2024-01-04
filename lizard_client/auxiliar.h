@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 #define WINDOW_SIZE 20 
-#define MAX_LIZARDS 2
+#define MAX_LIZARDS 26
 #define MAX_ROACHES_PER_CLIENT 10
 #define TAIL_SIZE 5
 #define RESPAWN_TIME 5000 /* ms */
@@ -20,7 +20,7 @@ typedef struct remote_char_t
     5-disconnect roaches, 6-join wasp, 7-move wasp, 8-disconnect wasp */
     uint32_t id;
     char ch[10];
-    int nChars; 
+    int nchars; 
     direction_t direction[10];
 }remote_char_t;
 
@@ -34,7 +34,7 @@ typedef struct pos_roachesNwasps
 {
     uint32_t id;
     ch_info_t char_data[10];
-    int nChars; 
+    int nchars; 
     bool active[10];
     bool valid;
 } pos_roachesNwasps;

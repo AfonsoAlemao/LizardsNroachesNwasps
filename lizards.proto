@@ -1,0 +1,23 @@
+// https://protobuf.dev/programming-guides/proto3/
+
+syntax = "proto2";
+
+enum Direction {
+  UP = 0;
+  DOWN = 1;
+  LEFT = 2;
+  RIGHT = 3;
+  NONE = 4;
+}
+
+message RemoteChar {
+  required int32 msg_type = 1; // Since Protobuf does not have a direct representation for uint32_t, using int32 here.
+  required uint32 id = 2;
+  required string ch = 3; // String in Protobuf does not enforce a length limit.
+  required int32 nchars = 4;
+  repeated Direction direction = 5; // Protobuf does not support fixed-size arrays, so using repeated field.
+}
+
+message ok_message {
+  required int32 msg_ok = 1;
+}

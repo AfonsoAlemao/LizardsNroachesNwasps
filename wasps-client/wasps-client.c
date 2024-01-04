@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h> 
+#include "../lizards.pb-c.h"
 
 void *context;
 void *requester;
@@ -40,10 +41,44 @@ uint32_t hash_function(const char *str) {
     return hash;
 }
 
+
+int zmq_read_OkMessage(void * requester){
+    zmq_msg_t msg_raw;
+    zmq_msg_init (&msg_raw);
+    int n_bytes = zmq_recvmsg(requester, &msg_raw, 0);
+    const uint8_t *pb_msg = (const uint8_t*)zmq_msg_data(&msg_raw);
+
+    OkMessage  * ret_value =  
+            ok_message__unpack(NULL, n_bytes, pb_msg);
+    zmq_msg_close (&msg_raw); 
+    return ret_value->msg_ok;
+}
+
+void zmq_send_RemoteChar(void * requester, remote_char_t *element){
+
+    RemoteChar m_struct = REMOTE_CHAR__INIT;
+    m_struct.ch = malloc(sizeof(element->ch));
+    memcpy(m_struct.ch, &element->ch, sizeof(element->ch));
+    m_struct.msg_type = element->msg_type;
+    m_struct.direction = element->direction;
+    m_struct.nchars = element->nchars;
+    m_struct.id = element->id;
+    m_struct.n_direction = 10;
+    
+    int size_bin_msg = remote_char__get_packed_size(&m_struct);
+    uint8_t * pb_m_bin = malloc(size_bin_msg);
+    remote_char__pack(&m_struct, pb_m_bin);
+    
+    zmq_send(requester, pb_m_bin, size_bin_msg, 0);
+    //free(pb_m_bin);
+    //free(pb_m_struct.ch.data);
+
+}
+
 int main(int argc, char *argv[]) {
     int nwasps, sleep_delay, ok = 0, port, rc, kk = 0;
     char full_address[60], id_string[60], *server_address, char_ok;
-    size_t send, recv;
+    // size_t send, recv;
     uint32_t id_int;
     remote_char_t m;
 
@@ -103,8 +138,10 @@ int main(int argc, char *argv[]) {
     
     /* Send connection message */
     m.msg_type = 6;
-    m.nChars = nwasps;
+    m.nchars = nwasps;
     m.id = id_int;
+    m.ch = (char *) malloc(sizeof(char) * MAX_ROACHES_PER_CLIENT);
+    m.direction = (Direction *) malloc(sizeof(Direction) * m.n_direction);
 
     /* Assign '#' to each element in the array */
     for (int i = 0; i < nwasps; i++) {
@@ -112,10 +149,12 @@ int main(int argc, char *argv[]) {
     }
 
     /* Connection message */
-    send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
-    assert(send != -1);
-    recv = zmq_recv (requester, &ok, sizeof(int), 0);
-    assert(recv != -1);
+    zmq_send_RemoteChar(requester, &m);
+    // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
+    // assert(send != -1);
+    // recv = zmq_recv (requester, &ok, sizeof(int), 0);
+    // assert(recv != -1);
+    ok = zmq_read_OkMessage(requester);
 
     /* From server response check connection success */
     char_ok = (char) ok;
@@ -148,10 +187,12 @@ int main(int argc, char *argv[]) {
         m.msg_type = 7;
 
         /* Send the movement message */
-        send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
-        assert(send != -1);
-        recv = zmq_recv (requester, &ok, sizeof(int), 0);
-        assert(recv != -1);
+        zmq_send_RemoteChar(requester, &m);
+        // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
+        // assert(send != -1);
+        // recv = zmq_recv (requester, &ok, sizeof(int), 0);
+        // assert(recv != -1);
+        ok = zmq_read_OkMessage(requester);
     
         /* Check if wasp movement request failed */
         if (ok == 0) { 

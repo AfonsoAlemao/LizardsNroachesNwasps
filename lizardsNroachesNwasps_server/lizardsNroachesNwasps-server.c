@@ -13,10 +13,13 @@
 #include <termios.h>
 #include <unistd.h>
 
+
 #include "lists.h"
 #include "fifo.h"
 #include "auxiliar.h"
 #include "z_helpers.h"
+#include "../lizards.pb-c.h"
+
 
 WINDOW *my_win;
 WINDOW *debug_win;
@@ -556,12 +559,38 @@ void loser_lizard(int index) {
         index_bot, element_type, field[pos_x][pos_y]);
 }
 
+RemoteChar  * zmq_read_RemoteChar(void * responder){
+    zmq_msg_t msg_raw;
+    zmq_msg_init (&msg_raw);
+    int n_bytes = zmq_recvmsg(responder, &msg_raw, 0);
+    const uint8_t *pb_msg = (const uint8_t*)zmq_msg_data(&msg_raw);
+
+    RemoteChar  * ret_value =  
+            remote_char__unpack(NULL, n_bytes, pb_msg);
+    zmq_msg_close (&msg_raw); 
+    return ret_value;
+}
+
+void zmq_send_OkMessage(void * responder, int ok){
+
+    OkMessage m_struct = OK_MESSAGE__INIT;
+    m_struct.msg_ok = ok;
+    
+    int size_bin_msg = ok_message__get_packed_size(&m_struct);
+    uint8_t * pb_m_bin = malloc(size_bin_msg);
+    ok_message__pack(&m_struct, pb_m_bin);
+    
+    zmq_send(responder, pb_m_bin, size_bin_msg, 0);
+    //free(pb_m_bin);
+    //free(pb_m_struct.ch.data);
+
+}
 
 int main(int argc, char *argv[]) {
     char *port_display, *port_client;
     char full_address_display[FULL_ADDRESS_LEN], full_address_client[FULL_ADDRESS_LEN];
-    remote_char_t m;
-    size_t send1, send2, bufsize = 100, send, recv;
+    RemoteChar *m;
+    size_t send1, send2, bufsize = 100, send; //, recv;
     struct termios oldt, newt;
     int rc, rc2, i, j, ch, jj = 0, check = -1;
     int max_bots = floor(((WINDOW_SIZE - 2) * (WINDOW_SIZE - 2)) / 3);
@@ -707,7 +736,7 @@ int main(int argc, char *argv[]) {
     }
     for (i = 0; i < max_bots; i++) {
         client_roaches[i].id = -1;
-        client_roaches[i].nChars = 0;
+        client_roaches[i].nchars = 0;
         for (j = 0; j < MAX_ROACHES_PER_CLIENT; j++) {
             client_roaches[i].active[j] = false;
         } 
@@ -715,37 +744,43 @@ int main(int argc, char *argv[]) {
     }
     for (i = 0; i < max_bots; i++) {
         client_wasps[i].id = -1;
-        client_wasps[i].nChars = 0;
+        client_wasps[i].nchars = 0;
         for (j = 0; j < MAX_WASPS_PER_CLIENT; j++) {
             client_wasps[i].active[j] = false;
         } 
         client_wasps[i].valid = false;
     }
 
+    
+
     while (1) {
         /* Deal with ressurection of dead roaches (after respawn time) */
         ressurect_roaches(client_roaches);
 
-        /* Receive client message */
-        recv = zmq_recv (responder, &m, sizeof(remote_char_t), 0);
-        assert(recv != -1);        
+        /* Receive client message */ 
+        m = zmq_read_RemoteChar(responder);
+
+        // recv = zmq_recv (responder, &m, sizeof(remote_char_t), 0);
+        // assert(recv != -1);        
         
         
-        if (m.msg_type == 0) { /* Connection from roach client */
+        if (m->msg_type == 0) { /* Connection from roach client */
             /* Testing if roach max number allows new roach client */
-            if (m.nChars + total_roaches + total_wasps > max_bots) {
+            if (m->nchars + total_roaches + total_wasps > max_bots) {
                 ok = 0;
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
                 continue;
             }
             /* Check if new client id is already in use */
             for (int iii = 0; iii < n_clients_roaches; iii++) {
-                if (client_roaches[iii].id == m.id) {
+                if (client_roaches[iii].id == m->id) {
                     ok = (int) '?';
-                    send = zmq_send (responder, &ok, sizeof(int), 0);
-                    assert(send != -1);
+                    zmq_send_OkMessage(responder, ok);
+                    // send = zmq_send (responder, &ok, sizeof(int), 0);
+                    // assert(send != -1);
                     break;
                 }
             }
@@ -754,10 +789,11 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             for (int iii = 0; iii < MAX_LIZARDS; iii++) {
-                if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
+                if (client_lizards[iii].valid && client_lizards[iii].id == m->id) {
                     ok = (int) '?';
-                    send = zmq_send (responder, &ok, sizeof(int), 0);
-                    assert(send != -1);
+                    zmq_send_OkMessage(responder, ok);
+                    // send = zmq_send (responder, &ok, sizeof(int), 0);
+                    // assert(send != -1);
                     break;
                 }
             }
@@ -779,17 +815,18 @@ int main(int argc, char *argv[]) {
 
             if (index_of_position_to_insert != -1) {
                 /* Send successful response to client */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
                 
-                client_roaches[index_of_position_to_insert].id = m.id;
-                client_roaches[index_of_position_to_insert].nChars = m.nChars;
+                client_roaches[index_of_position_to_insert].id = m->id;
+                client_roaches[index_of_position_to_insert].nchars = m->nchars;
                 client_roaches[index_of_position_to_insert].valid = true;
 
-                for (i = 0; i < m.nChars; i++) {
+                for (i = 0; i < m->nchars; i++) {
                     /* Insert in server each roach information */
-                    client_roaches[index_of_position_to_insert].char_data[i].ch = m.ch[i];
+                    client_roaches[index_of_position_to_insert].char_data[i].ch = m->ch[i];
                     client_roaches[index_of_position_to_insert].active[i] = true;
 
                     /* Compute roach initial random position */
@@ -818,23 +855,24 @@ int main(int argc, char *argv[]) {
                 }
                 /* Increase number of client_roaches and number of roaches*/
                 n_clients_roaches++;
-                total_roaches += m.nChars;
+                total_roaches += m->nchars;
             }
             else {
                 /* Send successful response to client */
                 ok = (int) '?';
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
             }
         }
-        else if (m.msg_type == 1) { /* Movements from roach client */
+        else if (m->msg_type == 1) { /* Movements from roach client */
             
 
             /* Find roach in client_roaches from its id */
             index_client_roaches_id = -1;
             for (int jjj = 0; jjj < n_clients_roaches;jjj++) {
-                if (client_roaches[jjj].id == m.id) {
+                if (client_roaches[jjj].id == m->id) {
                     index_client_roaches_id = jjj;
                     break;
                 }
@@ -842,11 +880,12 @@ int main(int argc, char *argv[]) {
 
             if (index_client_roaches_id != -1) {
                 /* Send successful response to client */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
 
-                for (i = 0; i < m.nChars; i++) {
+                for (i = 0; i < m->nchars; i++) {
                     if (client_roaches[index_client_roaches_id].active[i] == true) {
                         /* For each active roach, compute its new position */
                         pos_x_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_x;
@@ -854,7 +893,7 @@ int main(int argc, char *argv[]) {
                         ch = client_roaches[index_client_roaches_id].char_data[i].ch;
                         pos_x_roaches_aux = pos_x_roaches;
                         pos_y_roaches_aux = pos_y_roaches;
-                        new_position(&pos_x_roaches_aux, &pos_y_roaches_aux, m.direction[i]);
+                        new_position(&pos_x_roaches_aux, &pos_y_roaches_aux, m->direction[i]);
 
                         /* Check if new position is inside the playing field */
                         if (!(pos_x_roaches_aux < 0 || pos_y_roaches_aux < 0  || pos_x_roaches_aux >= WINDOW_SIZE || pos_y_roaches_aux  >= WINDOW_SIZE)) {
@@ -886,27 +925,30 @@ int main(int argc, char *argv[]) {
             else {
                 /* Send unsuccessful response to client */
                 ok = (int) '?';
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
             }
         }
-        else if (m.msg_type == 2) { /* Connection from lizard */
+        else if (m->msg_type == 2) { /* Connection from lizard */
             /* Check if there are still lizard slots available */
             if (total_lizards + 1 > MAX_LIZARDS) {
                 ok = (int) '?'; /* In case the pool is full of lizards */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
                 continue;
             }
 
             /* Check if new client id is already in use */
             for (int iii = 0; iii < n_clients_roaches; iii++) {
-                if (client_roaches[iii].id == m.id) {
+                if (client_roaches[iii].id == m->id) {
                     ok = (int) '?';
-                    send = zmq_send (responder, &ok, sizeof(int), 0);
-                    assert(send != -1);
+                    zmq_send_OkMessage(responder, ok);
+                    // send = zmq_send (responder, &ok, sizeof(int), 0);
+                    // assert(send != -1);
                     break;
                 }
             }
@@ -915,10 +957,11 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             for (int iii = 0; iii < MAX_LIZARDS; iii++) {
-                if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
+                if (client_lizards[iii].valid && client_lizards[iii].id == m->id) {
                     ok = (int) '?';
-                    send = zmq_send (responder, &ok, sizeof(int), 0);
-                    assert(send != -1);
+                    zmq_send_OkMessage(responder, ok);
+                    // send = zmq_send (responder, &ok, sizeof(int), 0);
+                    // assert(send != -1);
                     break;
                 }
             }
@@ -941,12 +984,13 @@ int main(int argc, char *argv[]) {
                 ok = (int) 'a' + index_of_position_to_insert;
 
                 /* Send lizard attributed name to client */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
 
                 /* Initialize lizard attributes */
-                client_lizards[index_of_position_to_insert].id = m.id;
+                client_lizards[index_of_position_to_insert].id = m->id;
                 client_lizards[index_of_position_to_insert].score = 0;
                 client_lizards[index_of_position_to_insert].valid = true;
                 client_lizards[index_of_position_to_insert].alive = true;
@@ -970,13 +1014,13 @@ int main(int argc, char *argv[]) {
                 ch = client_lizards[index_of_position_to_insert].char_data.ch;
 
                 /* Initial direction is random */
-                m.direction[0] = rand() % 4;
+                m->direction[0] = rand() % 4;
                 
                 /* Insert lizard tail into the playing field */
-                tail(m.direction[0], pos_x_lizards, pos_y_lizards, 
+                tail(m->direction[0], pos_x_lizards, pos_y_lizards, 
                     false, index_of_position_to_insert);
 
-                client_lizards[index_of_position_to_insert].prevdirection = m.direction[0];
+                client_lizards[index_of_position_to_insert].prevdirection = m->direction[0];
 
                 index_client = index_of_position_to_insert;
                 index_bot = -1;  
@@ -991,16 +1035,17 @@ int main(int argc, char *argv[]) {
             else {
                 /* Send unsuccessful response to client */
                 ok = (int) '?';
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
             }
         } 
-        else if (m.msg_type == 3) { /* Movement from lizard */
+        else if (m->msg_type == 3) { /* Movement from lizard */
             /* Find lizard in client_lizards from its id */
             index_client_lizards_id = -1;
             for (int jjj = 0; jjj < MAX_LIZARDS; jjj++) {
-                if (client_lizards[jjj].id == m.id && client_lizards[jjj].valid && client_lizards[jjj].alive) {
+                if (client_lizards[jjj].id == m->id && client_lizards[jjj].valid && client_lizards[jjj].alive) {
                     index_client_lizards_id = jjj;
                     break;
                 }
@@ -1014,7 +1059,7 @@ int main(int argc, char *argv[]) {
                 pos_y_lizards_aux = pos_y_lizards;
 
                 /* Compute lizard new position */
-                new_position(&pos_x_lizards_aux, &pos_y_lizards_aux, m.direction[0]);
+                new_position(&pos_x_lizards_aux, &pos_y_lizards_aux, m->direction[0]);
                 
                 /* Check if new position is inside the playing field */
                 if (!(pos_x_lizards_aux < 0 || pos_y_lizards_aux < 0  || pos_x_lizards_aux >= WINDOW_SIZE || pos_y_lizards_aux  >= WINDOW_SIZE)) {
@@ -1027,7 +1072,7 @@ int main(int argc, char *argv[]) {
                             true, index_client_lizards_id);
 
                         /* Insert lizard tail into the playing field in new position */
-                        tail(m.direction[0], pos_x_lizards_aux, pos_y_lizards_aux, false, 
+                        tail(m->direction[0], pos_x_lizards_aux, pos_y_lizards_aux, false, 
                             index_client_lizards_id);
 
                         index_client = index_client_lizards_id;
@@ -1048,13 +1093,13 @@ int main(int argc, char *argv[]) {
                         field[pos_x_lizards][pos_y_lizards] = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
                             index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
                         
-                        client_lizards[index_client_lizards_id].prevdirection = m.direction[0];
+                        client_lizards[index_client_lizards_id].prevdirection = m->direction[0];
 
                         /* Check if lizard won the game */
                         if (client_lizards[index_client].score >= POINTS_TO_WIN && end_game == 0) {
                             /* Update lizard tail to '*' and flag the game as finished */
                             end_game = 1;
-                            tail(m.direction[0], pos_x_lizards, pos_y_lizards, false, 
+                            tail(m->direction[0], pos_x_lizards, pos_y_lizards, false, 
                                 index_client_lizards_id);
 
                             end_game = 2;
@@ -1083,12 +1128,12 @@ int main(int argc, char *argv[]) {
             }
 
         }
-        else if (m.msg_type == 4) { /* Disconnection from lizard */
+        else if (m->msg_type == 4) { /* Disconnection from lizard */
 
             /* Find lizard in client_lizards from its id */
             index_client_lizards_id = -1;
             for (int jjj = 0; jjj < MAX_LIZARDS; jjj++) {
-                if (client_lizards[jjj].id == m.id && client_lizards[jjj].valid) {
+                if (client_lizards[jjj].id == m->id && client_lizards[jjj].valid) {
                     index_client_lizards_id = jjj;
                     break;
                 }
@@ -1096,8 +1141,9 @@ int main(int argc, char *argv[]) {
 
             if (index_client_lizards_id != -1) {
                 /* Send successful response to client */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
 
                 pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
@@ -1132,18 +1178,19 @@ int main(int argc, char *argv[]) {
             else {
                 /* Send unsuccessful response to client */
                 ok = (int) '?';
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
             }
         } 
-        else if (m.msg_type == 5) { /* Disconnection from roaches */
+        else if (m->msg_type == 5) { /* Disconnection from roaches */
             
 
             /* Find roach in client_roaches from its id */
             index_client_roaches_id = -1;
             for (int jjj = 0; jjj < MAX_ROACHES_PER_CLIENT; jjj++) {
-                if (client_roaches[jjj].id == m.id && client_roaches[jjj].valid) {
+                if (client_roaches[jjj].id == m->id && client_roaches[jjj].valid) {
                     index_client_roaches_id = jjj;
                     break;
                 }
@@ -1151,10 +1198,11 @@ int main(int argc, char *argv[]) {
 
             if (index_client_roaches_id != -1) {
                 /* Send successful response to client */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
-                for (i = 0; i < m.nChars; i++) {
+                for (i = 0; i < m->nchars; i++) {
                     if (client_roaches[index_client_roaches_id].active[i] == true) {
                         /* For each active roach, compute its new position */
                         pos_x_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_x;
@@ -1174,31 +1222,34 @@ int main(int argc, char *argv[]) {
                 /* Inactivate roach, and decrement number of roaches */
                 client_roaches[index_client_roaches_id].valid = false;
                 n_clients_roaches--;
-                total_roaches -= m.nChars;
+                total_roaches -= m->nchars;
             }
             else {
                 /* Send unsuccessful response to client */
                 ok = (int) '?';
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
             }
         }
-        else if (m.msg_type == 6) { /* Connection from wasp client */ 
+        else if (m->msg_type == 6) { /* Connection from wasp client */ 
             /* Testing if roach max number allows new wasp clien */
-            if (m.nChars + total_roaches + total_wasps > max_bots) {
+            if (m->nchars + total_roaches + total_wasps > max_bots) {
                 ok = 0;
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
                 continue;
             }
             /* Check if new client id is already in use */
             for (int iii = 0; iii < n_clients_wasps; iii++) {
-                if (client_wasps[iii].id == m.id) {
+                if (client_wasps[iii].id == m->id) {
                     ok = (int) '?';
-                    send = zmq_send (responder, &ok, sizeof(int), 0);
-                    assert(send != -1);
+                    zmq_send_OkMessage(responder, ok);
+                    // send = zmq_send (responder, &ok, sizeof(int), 0);
+                    // assert(send != -1);
                     break;
                 }
             }
@@ -1207,10 +1258,11 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             for (int iii = 0; iii < MAX_LIZARDS; iii++) {
-                if (client_lizards[iii].valid && client_lizards[iii].id == m.id) {
+                if (client_lizards[iii].valid && client_lizards[iii].id == m->id) {
                     ok = (int) '?';
-                    send = zmq_send (responder, &ok, sizeof(int), 0);
-                    assert(send != -1);
+                    zmq_send_OkMessage(responder, ok);
+                    // send = zmq_send (responder, &ok, sizeof(int), 0);
+                    // assert(send != -1);
                     break;
                 }
             }
@@ -1231,18 +1283,19 @@ int main(int argc, char *argv[]) {
 
             if (index_of_position_to_insert != -1) {
                 /* Send successful response to client */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
 
             
-                client_wasps[index_of_position_to_insert].id = m.id;
-                client_wasps[index_of_position_to_insert].nChars = m.nChars;
+                client_wasps[index_of_position_to_insert].id = m->id;
+                client_wasps[index_of_position_to_insert].nchars = m->nchars;
                 client_wasps[index_of_position_to_insert].valid = true;
 
-                for (i = 0; i < m.nChars; i++) {
+                for (i = 0; i < m->nchars; i++) {
                     /* Insert in server each wasp information */
-                    client_wasps[index_of_position_to_insert].char_data[i].ch = m.ch[i];
+                    client_wasps[index_of_position_to_insert].char_data[i].ch = m->ch[i];
                     client_wasps[index_of_position_to_insert].active[i] = true;
 
                     /* Compute wasp initial random position */
@@ -1272,34 +1325,36 @@ int main(int argc, char *argv[]) {
                 
                 /* Increase number of client_wasps and number of wasps*/
                 n_clients_wasps++;
-                total_wasps += m.nChars;
+                total_wasps += m->nchars;
             }
             else {
                 /* Send unsuccessful response to client */
                 ok = (int) '?';
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
             }
         }
-        else if (m.msg_type == 7) { /* Movements from wasp client */
+        else if (m->msg_type == 7) { /* Movements from wasp client */
             
 
             /* Find wasp in client_wasps from its id */
             index_client_wasps_id = -1;
             for (int jjj = 0; jjj < n_clients_wasps;jjj++) {
-                if (client_wasps[jjj].id == m.id) {
+                if (client_wasps[jjj].id == m->id) {
                     index_client_wasps_id = jjj;
                     break;
                 }
             }
             if (index_client_wasps_id != -1) {
                 /* Send successful response to client */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
 
-                for (i = 0; i < m.nChars; i++) {
+                for (i = 0; i < m->nchars; i++) {
                     if (client_wasps[index_client_wasps_id].active[i] == true) {
                         /* For each active wasp, compute its new position */
                         pos_x_wasps = client_wasps[index_client_wasps_id].char_data[i].pos_x;
@@ -1307,7 +1362,7 @@ int main(int argc, char *argv[]) {
                         ch = client_wasps[index_client_wasps_id].char_data[i].ch;
                         pos_x_wasps_aux = pos_x_wasps;
                         pos_y_wasps_aux = pos_y_wasps;
-                        new_position(&pos_x_wasps_aux, &pos_y_wasps_aux, m.direction[i]);
+                        new_position(&pos_x_wasps_aux, &pos_y_wasps_aux, m->direction[i]);
 
                         /* Check if new position is inside the playing field */
                         if (!(pos_x_wasps_aux < 0 || pos_y_wasps_aux < 0  || pos_x_wasps_aux >= WINDOW_SIZE || pos_y_wasps_aux  >= WINDOW_SIZE)) {
@@ -1343,17 +1398,18 @@ int main(int argc, char *argv[]) {
             else {
                 /* Send unsuccessful response to client */
                 ok = (int) '?';
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
             }
         }
-        else if (m.msg_type == 8) { /* Disconnection from wasp */
+        else if (m->msg_type == 8) { /* Disconnection from wasp */
             
             /* Find wasp in client_wasps from its id */
             index_client_wasps_id = -1;
             for (int jjj = 0; jjj < MAX_WASPS_PER_CLIENT; jjj++) {
-                if (client_wasps[jjj].id == m.id && client_wasps[jjj].valid) {
+                if (client_wasps[jjj].id == m->id && client_wasps[jjj].valid) {
                     index_client_wasps_id = jjj;
                     break;
                 }
@@ -1361,11 +1417,12 @@ int main(int argc, char *argv[]) {
 
             if (index_client_wasps_id != -1) {
                 /* Send successful response to client */
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
 
-                for (i = 0; i < m.nChars; i++) {
+                for (i = 0; i < m->nchars; i++) {
                     if (client_wasps[index_client_wasps_id].active[i] == true) {
                         /* For each active wasp, compute its new position */
                         pos_x_wasps = client_wasps[index_client_wasps_id].char_data[i].pos_x;
@@ -1385,13 +1442,14 @@ int main(int argc, char *argv[]) {
                 /* Inactivate wasp, and decrement number of wasps */
                 client_wasps[index_client_wasps_id].valid = false;
                 n_clients_wasps--;
-                total_wasps -= m.nChars;
+                total_wasps -= m->nchars;
             }
             else {
                 /* Send unsuccessful response to client */
                 ok = (int) '?';
-                send = zmq_send (responder, &ok, sizeof(int), 0);
-                assert(send != -1);
+                zmq_send_OkMessage(responder, ok);
+                // send = zmq_send (responder, &ok, sizeof(int), 0);
+                // assert(send != -1);
                 ok = 1;
             }
         }

@@ -615,7 +615,7 @@ int main(int argc, char *argv[]) {
     assert(responder != NULL);
     rc = zmq_bind (responder, full_address_client);
     assert (rc == 0);
-
+    
     publisher = zmq_socket (context, ZMQ_PUB);
     assert(publisher != NULL);
     rc2 = zmq_bind (publisher, full_address_display);

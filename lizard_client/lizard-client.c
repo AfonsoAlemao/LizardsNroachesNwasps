@@ -95,6 +95,8 @@ int main(int argc, char *argv[]) {
     size_t bufsize = 100, rcv;
     char *type;
 
+    timeout(0); /* Non-blocking getch() */
+
     /* Check if the correct number of arguments is provided */
     if (argc != 4) {
         fprintf(stderr, "Usage: %s <client-address> <client-port_client> <display-port_client>\n", argv[0]);
@@ -122,7 +124,7 @@ int main(int argc, char *argv[]) {
     id_int = hash_function(id_string_client);
     sprintf(full_address_client, "tcp://%s:%d", client_address, port_client);
 
-    snprintf(id_string_client, sizeof(id_string_display), "%s:%s", client_address, argv[3]);
+    snprintf(id_string_display, sizeof(id_string_display), "%s:%s", client_address, argv[3]);
     sprintf(full_address_display, "tcp://%s:%d", client_address, port_display);
  
     context = zmq_ctx_new();
@@ -131,7 +133,6 @@ int main(int argc, char *argv[]) {
     assert(requester != NULL);
     rc = zmq_connect (requester, full_address_client);
     assert(rc == 0);
-
 
     subscriber = zmq_socket (context, ZMQ_SUB);
     assert(subscriber != NULL);
@@ -148,8 +149,6 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-    
-    
 	initscr();			    /* Start curses mode */
 	cbreak();				/* Line buffering disabled */
 	keypad(stdscr, true);	/* We get F1, F2 etc.. */
@@ -157,8 +156,7 @@ int main(int argc, char *argv[]) {
 
     // mvprintw(2, 0, "You are lizard %c", char_ok);
     
-    /* Lizard movement message type */
-    m.msg_type = 3;
+    
 
     /* Turn off echoing of characters */
     tcgetattr(STDIN_FILENO, &oldt); /* Get current terminal attributes */
@@ -216,6 +214,9 @@ int main(int argc, char *argv[]) {
     /* Assign character to lizard */
     m.ch[0] = char_ok;
 
+    /* Lizard movement message type */
+    m.msg_type = 3;
+
     do {
         /* Receives message from publisher if the subscriber password matches the topic published */
         type = s_recv (subscriber);
@@ -256,7 +257,7 @@ int main(int argc, char *argv[]) {
         free_safe_d(type);
 
         /* Get next movement from user */
-    	key = getch();		
+    	key = getch();
         n++;
         switch (key)
         {
@@ -293,6 +294,10 @@ int main(int argc, char *argv[]) {
         }
         if (key != 'x') {
             /* Send movement to server */
+
+            mvwprintw(debug_win, 0, 0, "type: %d,\t\tch: %s,\t\tnChars: %d", m.msg_type, m.ch, m.nChars);
+            wrefresh(debug_win);
+            
             send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
             assert(send != -1);
             recv = zmq_recv (requester, &my_score, sizeof(double), 0);

@@ -77,19 +77,16 @@ int main(int argc, char *argv[]) {
     while (1) {
         printf("How many roaches (1 to 10)? ");
         if (scanf("%d", &nRoaches) != 1 || getchar() != '\n') {
-            // Invalid input (not an integer)
             fprintf(stderr, "Invalid input. Please enter a valid integer.\n");
 
             // Clear the input buffer
             while (getchar() != '\n');
 
-            // Ask the user again
             printf("How many roaches (1 to 10)? ");
         } else if (nRoaches < 1 || nRoaches > 10) {
-            // Invalid input (integer out of range)
             fprintf(stderr, "Invalid input. Please enter a number in the range 1 to 10.\n");
         } else {
-            // Valid input, break out of the loop
+            // Valid input
             break;
         }
     }

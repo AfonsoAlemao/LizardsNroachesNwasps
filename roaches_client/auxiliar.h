@@ -16,7 +16,8 @@ typedef enum direction_t {UP, DOWN, LEFT, RIGHT, NONE} direction_t;
 
 typedef struct remote_char_t
 {   
-    int msg_type; /* 0-join roaches, 1-move roaches, 2-join lizards, 3-move lizards */
+    int msg_type; /* 0-join roaches, 1-move roaches, 2-join lizards, 3-move lizards, 4-disconnect lizard, 
+    5-disconnect roaches, 6-join wasp, 7-move wasp, 8-disconnect wasp */
     uint32_t id;
     char ch[10];
     int nChars; 
@@ -35,6 +36,7 @@ typedef struct pos_roaches
     ch_info_t char_data[10];
     int nChars; 
     bool active[10];
+    bool valid;
 } pos_roaches;
 
 typedef struct pos_lizards

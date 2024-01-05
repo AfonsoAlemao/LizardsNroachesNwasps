@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -O3
-LIBS = -lzmq -lncurses -lprotobuf-c 
+LIBS = -lzmq -lncurses -lprotobuf-c -lpthread
 
 # Define .PHONY to specify that 'all' and 'clean' are not files.
 .PHONY: all clean
@@ -9,7 +9,7 @@ LIBS = -lzmq -lncurses -lprotobuf-c
 all: lizard_client 
 
 # Rule for building lizard_client
-lizard_client: lizard-client.c ../lizards.pb-c.c auxiliar.h  lizards.pb-c.o
+lizard_client: lizard-client.c ../lizards.pb-c.c auxiliar.h  lizards.pb-c.o 
 	$(CC) $(CFLAGS) -o lizard_client ../lizards.pb-c.c lizard-client.c $(LIBS)
 
 # Rule for compiling lizards.pb-c.c to an object file

@@ -13,7 +13,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-
 #include "lists.h"
 #include "fifo.h"
 #include "auxiliar.h"

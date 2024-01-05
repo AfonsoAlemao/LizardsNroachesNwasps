@@ -14,6 +14,8 @@
 #include <termios.h>
 #include <unistd.h>
 #include "../lizards.pb-c.h"
+#include <pthread.h>
+
 
 void *context;
 void *requester;
@@ -83,8 +85,8 @@ void display_stats(pos_lizards *client_lizards) {
     int i = 0;
 
     for (int j = 0; j < MAX_LIZARDS; j++) {
-        mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
-        wrefresh(stats_win);
+        // mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
+        // wrefresh(stats_win);
         if (client_lizards[j].valid) {
             if (client_lizards[j].alive) {
                 mvwprintw(stats_win, i, 1, "Player %c: Score = %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
@@ -127,6 +129,62 @@ void free_exit_l() {
     assert(rc == 0);
 }
 
+
+void *thread_function(void *arg) {
+    char *type;
+    size_t rcv;
+    int i, j, new = 0;
+    bool end_program = *(bool*) arg;
+    char ch;
+    msg msg_subscriber;
+
+    while(!end_program) {
+        /* Receives message from publisher if the subscriber password matches the topic published */
+        type = s_recv (subscriber);
+        assert(type != NULL);
+        // mvwprintw(debug_win, 0, 0, "type: %s,\t\tpass: %s\n", type, password);
+        // wrefresh(debug_win);
+        if (strcmp(type, password) != 0) {
+            printf("Wrong password\n");
+            endwin(); /* End curses mode */
+            free_exit_l();
+            free_exit_display();
+
+            exit(0);
+        }
+        rcv = zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
+        assert(rcv != -1);
+
+        /* When display-app receives data for the first time, it must display 
+        the whole field game and update the lizard stats */
+        if (new == 0) {
+            new = 1;
+            for (i = 0; i < WINDOW_SIZE; i++) {
+                for (j = 0; j < WINDOW_SIZE; j++) {
+                    ch = msg_subscriber.field[i][j];
+                    if (ch != ' ') {
+                        wmove(my_win, i, j);
+                        waddch(my_win, ch | A_BOLD);
+                        wrefresh(my_win); 
+                    }
+                }
+            }
+            display_stats(msg_subscriber.lizards);
+        } else {
+            /* Then, each time the field is updated, the display-app is updated accordingly */
+            if (msg_subscriber.x_upd != -1 && msg_subscriber.y_upd != -1) {
+                ch = msg_subscriber.field[msg_subscriber.x_upd][msg_subscriber.y_upd];
+                wmove(my_win, msg_subscriber.x_upd, msg_subscriber.y_upd);
+                waddch(my_win, ch | A_BOLD);
+                wrefresh(my_win);
+            }
+            display_stats(msg_subscriber.lizards);
+        }
+        free_safe_d(type);
+    }
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     char *client_address, full_address_client[60], full_address_display[60];
     char id_string_client[60], id_string_display[60], char_ok;
@@ -136,11 +194,11 @@ int main(int argc, char *argv[]) {
     double my_score = 0;
     // size_t send, recv;
 
-    msg msg_subscriber;
-    int new = 0, j = 0, ch, i = 0;
+    int ch, i = 0;
     struct termios oldt, newt;
-    size_t bufsize = 100, rcv;
-    char *type;
+    size_t bufsize = 100;
+    
+    
 
     timeout(0); /* Non-blocking getch() */
 
@@ -269,44 +327,12 @@ int main(int argc, char *argv[]) {
     /* Lizard movement message type */
     m.msg_type = 3;
 
-    do {
-        /* Receives message from publisher if the subscriber password matches the topic published */
-        type = s_recv (subscriber);
-        assert(type != NULL);
-        if (strcmp(type, password) != 0 ) {
-            printf("Wrong password\n");
-            free_exit_display();
-            exit(0);
-        }
-        rcv = zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
-        assert(rcv != -1);
+    pthread_t thread_id;
+    bool end_program = false;
 
-        /* When display-app receives data for the first time, it must display 
-        the whole field game and update the lizard stats */
-        if (new == 0) {
-            new = 1;
-            for (i = 0; i < WINDOW_SIZE; i++) {
-                for (j = 0; j < WINDOW_SIZE; j++) {
-                    ch = msg_subscriber.field[i][j];
-                    if (ch != ' ') {
-                        wmove(my_win, i, j);
-                        waddch(my_win, ch | A_BOLD);
-                        wrefresh(my_win); 
-                    }
-                }
-            }
-            display_stats(msg_subscriber.lizards);
-        } else {
-            /* Then, each time the field is updated, the display-app is updated accordingly */
-            if (msg_subscriber.x_upd != -1 && msg_subscriber.y_upd != -1) {
-                ch = msg_subscriber.field[msg_subscriber.x_upd][msg_subscriber.y_upd];
-                wmove(my_win, msg_subscriber.x_upd, msg_subscriber.y_upd);
-                waddch(my_win, ch | A_BOLD);
-                wrefresh(my_win);
-            }
-            display_stats(msg_subscriber.lizards);
-        }
-        free_safe_d(type);
+    pthread_create(&thread_id, NULL, thread_function, &end_program);
+
+    do {
 
         /* Get next movement from user */
     	key = getch();
@@ -343,12 +369,14 @@ int main(int argc, char *argv[]) {
         if (disconnect == 1) {
             /* Message type for user disconnection */
             m.msg_type = 4;
+            
+            end_program = true;
         }
         if (key != 'x') {
             /* Send movement to server */
 
-            mvwprintw(debug_win, 0, 0, "type: %d,\t\tch: %s,\t\tnchars: %d", m.msg_type, m.ch, m.nchars);
-            wrefresh(debug_win);
+            // mvwprintw(debug_win, 0, 0, "type: %d,\t\tch: %s,\t\tnchars: %d", m.msg_type, m.ch, m.nchars);
+            // wrefresh(debug_win);
 
             zmq_send_RemoteChar(requester, &m);
             // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
@@ -374,12 +402,14 @@ int main(int argc, char *argv[]) {
 
             
         }
-        refresh(); /* Print it on to the real screen */
+        // refresh(); /* Print it on to the real screen */
     } while(key != 27 && key != 'Q' && key != 'q');
     
   	endwin(); /* End curses mode */
     free_exit_l();
     free_exit_display();
+
+    pthread_join(thread_id, NULL);
 
 	return 0;
 }

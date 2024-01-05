@@ -58,8 +58,8 @@ uint32_t hash_function(const char *str) {
 void zmq_send_RemoteChar(void * requester, RemoteChar *element){
 
     RemoteChar m_struct = REMOTE_CHAR__INIT;
-    m_struct.ch = malloc(sizeof(element->ch));
-    memcpy(m_struct.ch, &element->ch, sizeof(element->ch));
+    m_struct.ch = malloc(strlen(element->ch) + 1); 
+    memcpy(m_struct.ch, element->ch, strlen(element->ch) + 1);
     m_struct.msg_type = element->msg_type;
     m_struct.direction = element->direction;
     m_struct.nchars = element->nchars;

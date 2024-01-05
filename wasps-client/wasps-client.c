@@ -54,11 +54,11 @@ int zmq_read_OkMessage(void * requester){
     return ret_value->msg_ok;
 }
 
-void zmq_send_RemoteChar(void * requester, remote_char_t *element){
+void zmq_send_RemoteChar(void * requester, RemoteChar *element){
 
     RemoteChar m_struct = REMOTE_CHAR__INIT;
-    m_struct.ch = malloc(sizeof(element->ch));
-    memcpy(m_struct.ch, &element->ch, sizeof(element->ch));
+    m_struct.ch = malloc(strlen(element->ch) + 1); 
+    memcpy(m_struct.ch, element->ch, strlen(element->ch) + 1);
     m_struct.msg_type = element->msg_type;
     m_struct.direction = element->direction;
     m_struct.nchars = element->nchars;
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     char full_address[60], id_string[60], *server_address, char_ok;
     // size_t send, recv;
     uint32_t id_int;
-    remote_char_t m;
+    RemoteChar m = REMOTE_CHAR__INIT;
 
     /* Check if the correct number of arguments is provided */
     if (argc != 3) {

@@ -97,6 +97,51 @@ void   ok_message__free_unpacked
   assert(message->base.descriptor == &ok_message__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
+void   score_message__init
+                     (ScoreMessage         *message)
+{
+  static const ScoreMessage init_value = SCORE_MESSAGE__INIT;
+  *message = init_value;
+}
+size_t score_message__get_packed_size
+                     (const ScoreMessage *message)
+{
+  assert(message->base.descriptor == &score_message__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t score_message__pack
+                     (const ScoreMessage *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &score_message__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t score_message__pack_to_buffer
+                     (const ScoreMessage *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &score_message__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+ScoreMessage *
+       score_message__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (ScoreMessage *)
+     protobuf_c_message_unpack (&score_message__descriptor,
+                                allocator, len, data);
+}
+void   score_message__free_unpacked
+                     (ScoreMessage *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &score_message__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
 static const ProtobufCFieldDescriptor remote_char__field_descriptors[5] =
 {
   {
@@ -223,6 +268,44 @@ const ProtobufCMessageDescriptor ok_message__descriptor =
   ok_message__field_indices_by_name,
   1,  ok_message__number_ranges,
   (ProtobufCMessageInit) ok_message__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor score_message__field_descriptors[1] =
+{
+  {
+    "my_score",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_DOUBLE,
+    0,   /* quantifier_offset */
+    offsetof(ScoreMessage, my_score),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned score_message__field_indices_by_name[] = {
+  0,   /* field[0] = my_score */
+};
+static const ProtobufCIntRange score_message__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor score_message__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "score_message",
+  "ScoreMessage",
+  "ScoreMessage",
+  "",
+  sizeof(ScoreMessage),
+  1,
+  score_message__field_descriptors,
+  score_message__field_indices_by_name,
+  1,  score_message__number_ranges,
+  (ProtobufCMessageInit) score_message__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCEnumValue direction__enum_values_by_number[5] =

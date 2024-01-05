@@ -21,3 +21,7 @@ message RemoteChar {
 message ok_message {
   required int32 msg_ok = 1;
 }
+
+message score_message {
+  required double my_score = 1;
+}

@@ -25,7 +25,7 @@ char *password;
 void *context;
 void *subscriber;
 
-int zmq_read_Myscore_OkMessage(void * requester){
+int zmq_read_OkMessage(void * requester){
     zmq_msg_t msg_raw;
     zmq_msg_init (&msg_raw);
     int n_bytes = zmq_recvmsg(requester, &msg_raw, 0);
@@ -37,11 +37,24 @@ int zmq_read_Myscore_OkMessage(void * requester){
     return ret_value->msg_ok;
 }
 
-void zmq_send_RemoteChar(void * requester, remote_char_t *element){
+double zmq_read_Myscore(void * requester){
+    
+    zmq_msg_t msg_raw;
+    zmq_msg_init (&msg_raw);
+    int n_bytes = zmq_recvmsg(requester, &msg_raw, 0);
+    const uint8_t *pb_msg = (const uint8_t*)zmq_msg_data(&msg_raw);
+
+    ScoreMessage * ret_value =  
+            score_message__unpack(NULL, n_bytes, pb_msg);
+    zmq_msg_close (&msg_raw); 
+    return ret_value->my_score;
+}
+
+void zmq_send_RemoteChar(void * requester, RemoteChar *element){
 
     RemoteChar m_struct = REMOTE_CHAR__INIT;
-    m_struct.ch = malloc(sizeof(element->ch));
-    memcpy(m_struct.ch, &element->ch, sizeof(element->ch));
+    m_struct.ch = malloc(strlen(element->ch) + 1); 
+    memcpy(m_struct.ch, element->ch, strlen(element->ch) + 1);
     m_struct.msg_type = element->msg_type;
     m_struct.direction = element->direction;
     m_struct.nchars = element->nchars;
@@ -119,9 +132,9 @@ int main(int argc, char *argv[]) {
     char id_string_client[60], id_string_display[60], char_ok;
     int port_client, port_display, ok = 0, n = 0, disconnect = 0, key, rc;
     uint32_t id_int;
-    remote_char_t m;
+    RemoteChar m = REMOTE_CHAR__INIT;
     double my_score = 0;
-    size_t send, recv;
+    // size_t send, recv;
 
     msg msg_subscriber;
     int new = 0, j = 0, ch, i = 0;
@@ -229,6 +242,9 @@ int main(int argc, char *argv[]) {
     m.msg_type = 2;
     m.nchars = 1;
     m.id = id_int;    
+    m.ch = (char *) malloc(sizeof(char) * MAX_ROACHES_PER_CLIENT);
+    m.direction = (Direction *) malloc(sizeof(Direction) * m.n_direction);
+
 
     /* Connection message */
     zmq_send_RemoteChar(requester, &m);
@@ -236,8 +252,7 @@ int main(int argc, char *argv[]) {
     // assert(send != -1);
     // recv = zmq_recv (requester, &ok, sizeof(int), 0);
     // assert(recv != -1);
-    ok = zmq_read_Myscore_OkMessage(requester);
-
+    ok = zmq_read_OkMessage(requester);
     /* From server response check connection success */
     char_ok = (char) ok;
     if (char_ok == '?') {
@@ -246,6 +261,7 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
     ok = 0;
+    
 
     /* Assign character to lizard */
     m.ch[0] = char_ok;
@@ -333,14 +349,13 @@ int main(int argc, char *argv[]) {
 
             mvwprintw(debug_win, 0, 0, "type: %d,\t\tch: %s,\t\tnchars: %d", m.msg_type, m.ch, m.nchars);
             wrefresh(debug_win);
-            
 
             zmq_send_RemoteChar(requester, &m);
             // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
             // assert(send != -1);
             // recv = zmq_recv (requester, &my_score, sizeof(int), 0);
             // assert(recv != -1);
-            my_score = zmq_read_Myscore_OkMessage(requester);
+            my_score = zmq_read_Myscore(requester);
 
             if (my_score == -1) { /* The request was not fullfilled */
                 // mvprintw(4, 0, "Connection failed!\t\t\t\n");

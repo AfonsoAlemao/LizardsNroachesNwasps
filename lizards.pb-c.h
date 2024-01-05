@@ -17,6 +17,7 @@ PROTOBUF_C__BEGIN_DECLS
 
 typedef struct _RemoteChar RemoteChar;
 typedef struct _OkMessage OkMessage;
+typedef struct _ScoreMessage ScoreMessage;
 
 
 /* --- enums --- */
@@ -66,6 +67,16 @@ struct  _OkMessage
     , 0 }
 
 
+struct  _ScoreMessage
+{
+  ProtobufCMessage base;
+  double my_score;
+};
+#define SCORE_MESSAGE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&score_message__descriptor) \
+    , 0 }
+
+
 /* RemoteChar methods */
 void   remote_char__init
                      (RemoteChar         *message);
@@ -104,6 +115,25 @@ OkMessage *
 void   ok_message__free_unpacked
                      (OkMessage *message,
                       ProtobufCAllocator *allocator);
+/* ScoreMessage methods */
+void   score_message__init
+                     (ScoreMessage         *message);
+size_t score_message__get_packed_size
+                     (const ScoreMessage   *message);
+size_t score_message__pack
+                     (const ScoreMessage   *message,
+                      uint8_t             *out);
+size_t score_message__pack_to_buffer
+                     (const ScoreMessage   *message,
+                      ProtobufCBuffer     *buffer);
+ScoreMessage *
+       score_message__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   score_message__free_unpacked
+                     (ScoreMessage *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*RemoteChar_Closure)
@@ -111,6 +141,9 @@ typedef void (*RemoteChar_Closure)
                   void *closure_data);
 typedef void (*OkMessage_Closure)
                  (const OkMessage *message,
+                  void *closure_data);
+typedef void (*ScoreMessage_Closure)
+                 (const ScoreMessage *message,
                   void *closure_data);
 
 /* --- services --- */
@@ -121,6 +154,7 @@ typedef void (*OkMessage_Closure)
 extern const ProtobufCEnumDescriptor    direction__descriptor;
 extern const ProtobufCMessageDescriptor remote_char__descriptor;
 extern const ProtobufCMessageDescriptor ok_message__descriptor;
+extern const ProtobufCMessageDescriptor score_message__descriptor;
 
 PROTOBUF_C__END_DECLS
 

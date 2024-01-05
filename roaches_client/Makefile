@@ -19,3 +19,4 @@ lizards.pb-c.o: ../lizards.pb-c.c ../lizards.pb-c.h
 # Rule for cleaning up the build artifacts
 clean:
 	rm -f roaches_client lizards.pb-c.o
+ 

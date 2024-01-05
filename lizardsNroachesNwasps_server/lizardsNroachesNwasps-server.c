@@ -586,11 +586,26 @@ void zmq_send_OkMessage(void * responder, int ok){
 
 }
 
+void zmq_send_MyScore(void * responder, double my_score){
+
+    ScoreMessage m_struct = SCORE_MESSAGE__INIT;
+    m_struct.my_score = my_score;
+    
+    int size_bin_msg = score_message__get_packed_size(&m_struct);
+    uint8_t * pb_m_bin = malloc(size_bin_msg);
+    score_message__pack(&m_struct, pb_m_bin);
+    
+    zmq_send(responder, pb_m_bin, size_bin_msg, 0);
+    //free(pb_m_bin);
+    //free(pb_m_struct.ch.data);
+
+}
+
 int main(int argc, char *argv[]) {
     char *port_display, *port_client;
     char full_address_display[FULL_ADDRESS_LEN], full_address_client[FULL_ADDRESS_LEN];
     RemoteChar *m;
-    size_t send1, send2, bufsize = 100, send; //, recv;
+    size_t send1, send2, bufsize = 100; //send; //, recv;
     struct termios oldt, newt;
     int rc, rc2, i, j, ch, jj = 0, check = -1;
     int max_bots = floor(((WINDOW_SIZE - 2) * (WINDOW_SIZE - 2)) / 3);
@@ -680,7 +695,7 @@ int main(int argc, char *argv[]) {
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
     /* Ask user a password for the subscribers of the display-app */
-    printw("Display-app pass: ");
+    printw("Broadcast password: ");
     refresh();
     i = 0; 
     while(i < 99 && (ch = getch()) != '\n') {
@@ -1118,13 +1133,15 @@ int main(int argc, char *argv[]) {
                     
                 }
                 /* Send lizard score to client */
-                send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(double), 0);
-                assert(send != -1);
+                zmq_send_MyScore(responder, client_lizards[index_client_lizards_id].score);
+                // send = zmq_send (responder, &client_lizards[index_client_lizards_id].score, sizeof(double), 0);
+                // assert(send != -1);
             }
             else {
                 to_send = -1000;
-                send = zmq_send (responder, &to_send, sizeof(double), 0);
-                assert(send != -1);
+                // send = zmq_send (responder, &to_send, sizeof(double), 0);
+                // assert(send != -1);
+                zmq_send_MyScore(responder, to_send);
             }
 
         }

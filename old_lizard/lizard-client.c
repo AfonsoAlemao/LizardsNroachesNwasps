@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
             /* Message type for user disconnection */
             m.msg_type = 4;
         }
-        if (key != 'x') {
+        else if (key != 'x') {
             /* Send movement to server */
             
             mvprintw(2, 0, "aqui1\n");

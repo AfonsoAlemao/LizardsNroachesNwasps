@@ -55,7 +55,7 @@ list_element ***allocate3DArray();
 void free3DArray(list_element ***table);
 void ressurect_roaches();
 void free_exit();
-bool disconnect_wasp(int index);
+bool disconnect_wasp(int index, RemoteChar *m);
 
 
 /* Apply movement to get new position */
@@ -605,53 +605,51 @@ void zmq_send_MyScore(void * responder, double my_score){
 
 
 
-void *thread_function(void *arg) {
-    int64_t now, inactivity_time;
-    int i = 0;
+// void *thread_function(void *arg) {
+//     int64_t now, inactivity_time;
+//     int i = 0;
     
-    while(1) {
-        /* Deal with ressurection of dead roaches (after respawn time) */
-        ressurect_roaches();
+//     while(1) {
+        
+//         now = s_clock();
+//         assert(now >= 0);
 
-        now = s_clock();
-        assert(now >= 0);
+//         for (i = 0; i < MAX_ROACHES_PER_CLIENT; i++) {
+//             if (client_roaches[i].valid) {
+//                 inactivity_time = now - client_roaches[i].previous_interaction;
+//                 if (inactivity_time > TIMEOUT_THRESHOLD) {
+//                     disconnect_roach(i);
+//                 }
+//             }
+//         }
 
-        for (i = 0; i < MAX_ROACHES_PER_CLIENT; i++) {
-            if (client_roaches[i].valid) {
-                inactivity_time = now - client_roaches[i].previous_interaction;
-                if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    disconnect_roach(i);
-                }
-            }
-        }
+//         for (i = 0; i < MAX_WASPS_PER_CLIENT; i++) {
+//             if (client_wasps[i].valid) {
+//                 inactivity_time = now - client_roaches[i].previous_interaction;
+//                 if (inactivity_time > TIMEOUT_THRESHOLD) {
+//                     disconnect_wasp(i, m);
+//                 }
+//             }
+//         }
 
-        for (i = 0; i < MAX_WASPS_PER_CLIENT; i++) {
-            if (client_wasps[i].valid) {
-                inactivity_time = now - client_roaches[i].previous_interaction;
-                if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    disconnect_wasp(i);
-                }
-            }
-        }
-
-        for (i = 0; i < MAX_LIZARDS; i++) {
-            if (client_lizards[i].valid) {
-                inactivity_time = now - client_roaches[i].previous_interaction;
-                if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    disconnect_lizard(i);
-                }
-            }
-        }
+//         for (i = 0; i < MAX_LIZARDS; i++) {
+//             if (client_lizards[i].valid) {
+//                 inactivity_time = now - client_roaches[i].previous_interaction;
+//                 if (inactivity_time > TIMEOUT_THRESHOLD) {
+//                     disconnect_lizard(i, m);
+//                 }
+//             }
+//         }
 
         
-    }
-    return 0;
-}
+//     }
+//     return 0;
+// }
 
 
 bool disconnect_wasp(int index, RemoteChar *m) {
     int element_type, pos_x_wasps, pos_y_wasps, index_client, index_bot;
-    char ch;
+    char ch = ' ';
     if (index != -1) {
         for (int i = 0; i < m->nchars; i++) {
             if (client_wasps[index].active[i] == true) {
@@ -674,12 +672,78 @@ bool disconnect_wasp(int index, RemoteChar *m) {
         client_wasps[index].valid = false;
         n_clients_wasps--;
         total_wasps -= m->nchars;
-        return true
+        return true;
 
     }
     return false;
 }
 
+bool disconnect_roach(int index, RemoteChar *m) {
+    int element_type, pos_x_roaches, pos_y_roaches, index_client, index_bot;
+    char ch = ' ';
+    if (index != -1) {
+        for (int i = 0; i < m->nchars; i++) {
+            if (client_roaches[index].active[i] == true) {
+                /* For each active roach, compute its new position */
+                pos_x_roaches = client_roaches[index].char_data[i].pos_x;
+                pos_y_roaches = client_roaches[index].char_data[i].pos_y;
+                ch = client_roaches[index].char_data[i].ch;
+
+                index_client = index;
+                index_bot = i;  
+                element_type = 3;
+
+                /* Remove roach from the playing field in old position */
+                field[pos_x_roaches][pos_y_roaches] = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
+                    index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
+            }
+        }
+        
+        /* Inactivate roach, and decrement number of roaches */
+        client_roaches[index].valid = false;
+        n_clients_roaches--;
+        total_roaches -= m->nchars;
+        return true;
+    }
+    return false;
+}
+
+bool disconnect_lizard(int index, RemoteChar *m) {
+    int element_type, pos_x_lizards, pos_y_lizards, index_client, index_bot;
+    char ch = ' ';
+    if (index != -1) {
+        pos_x_lizards = client_lizards[index].char_data.pos_x;
+        pos_y_lizards = client_lizards[index].char_data.pos_y;
+        ch = client_lizards[index].char_data.ch;
+
+        if (client_lizards[index].alive) {
+            /* Remove lizard tail from the playing field in the old position */
+            tail(client_lizards[index].prevdirection, pos_x_lizards, pos_y_lizards, 
+                true, index);
+        }
+
+        index_client = index;
+        index_bot = -1;  
+        element_type = 1;
+
+        if (client_lizards[index].alive) {
+            /* Remove lizard from the playing field in old position */
+            field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+                index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+        }
+        else {
+            element_type = 4;
+            field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+                index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+        }
+
+        /* Inactivate lizard, and decrement number of lizards */
+        client_lizards[index].valid = false;
+        total_lizards--;
+        return true;
+    }
+    return false;
+}
 
 int main(int argc, char *argv[]) {
     char *port_display, *port_client;
@@ -852,11 +916,13 @@ int main(int argc, char *argv[]) {
         client_wasps[i].valid = false;
     }
 
-    pthread_t thread_id;
-    pthread_create(&thread_id, NULL, thread_function);
+    // pthread_t thread_id;
+    // pthread_create(&thread_id, NULL, thread_function);
 
     while (1) {
         
+        /* Deal with ressurection of dead roaches (after respawn time) */
+        ressurect_roaches();
 
         /* Receive client message */ 
         m = zmq_read_RemoteChar(responder);
@@ -982,8 +1048,8 @@ int main(int argc, char *argv[]) {
             }
 
             if (index_client_roaches_id != -1) {
-                client_roaches[index_of_position_to_insert].previous_interaction = s_clock();
-                assert(client_roaches[index_of_position_to_insert].previous_interaction >= 0);
+                client_roaches[index_client_roaches_id].previous_interaction = s_clock();
+                assert(client_roaches[index_client_roaches_id].previous_interaction >= 0);
 
                 /* Send successful response to client */
                 zmq_send_OkMessage(responder, ok);
@@ -1100,8 +1166,8 @@ int main(int argc, char *argv[]) {
                 client_lizards[index_of_position_to_insert].score = 0;
                 client_lizards[index_of_position_to_insert].valid = true;
                 client_lizards[index_of_position_to_insert].alive = true;
-                client_lizard[index_of_position_to_insert].previous_interaction = s_clock();
-                assert(client_lizard[index_of_position_to_insert].previous_interaction >= 0);
+                client_lizards[index_of_position_to_insert].previous_interaction = s_clock();
+                assert(client_lizards[index_of_position_to_insert].previous_interaction >= 0);
 
                 /* Compute lizard initial random position */
                 while (1) {
@@ -1159,8 +1225,8 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (index_client_lizards_id != -1) {
-                client_lizard[index_of_position_to_insert].previous_interaction = s_clock();
-                assert(client_lizard[index_of_position_to_insert].previous_interaction >= 0);
+                client_lizards[index_client_lizards_id].previous_interaction = s_clock();
+                assert(client_lizards[index_client_lizards_id].previous_interaction >= 0);
 
                 pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
                 pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
@@ -1252,41 +1318,14 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            if (index_client_lizards_id != -1) {
+            success = disconnect_lizard(index_client_lizards_id, m);
+
+            if (!success) {
                 /* Send successful response to client */
                 zmq_send_OkMessage(responder, ok);
                 // send = zmq_send (responder, &ok, sizeof(int), 0);
                 // assert(send != -1);
                 ok = 1;
-
-                pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
-                pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
-                ch = client_lizards[index_client_lizards_id].char_data.ch;
-
-                if (client_lizards[index_client_lizards_id].alive) {
-                    /* Remove lizard tail from the playing field in the old position */
-                    tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
-                        true, index_client_lizards_id);
-                }
-
-                index_client = index_client_lizards_id;
-                index_bot = -1;  
-                element_type = 1;
-
-                if (client_lizards[index_client_lizards_id].alive) {
-                    /* Remove roach from the playing field in old position */
-                    field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
-                        index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
-                }
-                else {
-                    element_type = 4;
-                    field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
-                        index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
-                }
-
-                /* Inactivate lizard, and decrement number of lizards */
-                client_lizards[index_client_lizards_id].valid = false;
-                total_lizards--;
             }
             else {
                 /* Send unsuccessful response to client */
@@ -1298,7 +1337,6 @@ int main(int argc, char *argv[]) {
             }
         } 
         else if (m->msg_type == 5) { /* Disconnection from roaches */
-            
 
             /* Find roach in client_roaches from its id */
             index_client_roaches_id = -1;
@@ -1309,33 +1347,14 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            if (index_client_roaches_id != -1) {
+            success = disconnect_roach(index_client_roaches_id, m);
+
+            if (!success) {
                 /* Send successful response to client */
                 zmq_send_OkMessage(responder, ok);
                 // send = zmq_send (responder, &ok, sizeof(int), 0);
                 // assert(send != -1);
                 ok = 1;
-                for (i = 0; i < m->nchars; i++) {
-                    if (client_roaches[index_client_roaches_id].active[i] == true) {
-                        /* For each active roach, compute its new position */
-                        pos_x_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_x;
-                        pos_y_roaches = client_roaches[index_client_roaches_id].char_data[i].pos_y;
-                        ch = client_roaches[index_client_roaches_id].char_data[i].ch;
-
-                        index_client = index_client_roaches_id;
-                        index_bot = i;  
-                        element_type = 3;
-
-                        /* Remove roach from the playing field in old position */
-                        field[pos_x_roaches][pos_y_roaches] = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
-                            index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
-                    }
-                }
-                
-                /* Inactivate roach, and decrement number of roaches */
-                client_roaches[index_client_roaches_id].valid = false;
-                n_clients_roaches--;
-                total_roaches -= m->nchars;
             }
             else {
                 /* Send unsuccessful response to client */
@@ -1463,8 +1482,8 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (index_client_wasps_id != -1) {
-                client_wasps[index_of_position_to_insert].previous_interaction = s_clock();
-                assert(client_wasps[index_of_position_to_insert].previous_interaction >= 0);
+                client_wasps[index_client_wasps_id].previous_interaction = s_clock();
+                assert(client_wasps[index_client_wasps_id].previous_interaction >= 0);
 
                 /* Send successful response to client */
                 zmq_send_OkMessage(responder, ok);

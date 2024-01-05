@@ -27,6 +27,8 @@ char *password;
 void *context;
 void *subscriber;
 
+
+
 int zmq_read_OkMessage(void * requester){
     zmq_msg_t msg_raw;
     zmq_msg_init (&msg_raw);
@@ -101,17 +103,6 @@ void display_stats(pos_lizards *client_lizards) {
     }
 }
 
-/* Free allocated memory if an error occurs */
-void free_exit_display() {
-    zmq_close (subscriber);
-    int rc = zmq_ctx_destroy(context);
-    assert(rc == 0);
-    free_safe_d(password);
-    delwin(stats_win);
-    delwin(debug_win);
-    delwin(my_win);
-  	endwin(); /* End curses mode */
-}
 
 /* Convert each string in a unique ID */
 uint32_t hash_function(const char *str) {
@@ -124,7 +115,13 @@ uint32_t hash_function(const char *str) {
 
 /* Free allocated memory if an error occurs */
 void free_exit_l() {
+    delwin(stats_win);
+    delwin(debug_win);
+    delwin(my_win);
+  	endwin(); /* End curses mode */
+    free_safe_d(password);
     zmq_close (requester);
+    zmq_close (subscriber);
     int rc = zmq_ctx_destroy (context);
     assert(rc == 0);
 }
@@ -134,21 +131,29 @@ void *thread_function(void *arg) {
     char *type;
     size_t rcv;
     int i, j, new = 0;
-    bool end_program = *(bool*) arg;
+    int *end_program2 = (int *) arg;
+    
     char ch;
     msg msg_subscriber;
 
-    while(!end_program) {
+    while((*end_program2) == 0) {
         /* Receives message from publisher if the subscriber password matches the topic published */
         type = s_recv (subscriber);
-        assert(type != NULL);
+        if (type == NULL) {
+            continue;
+        }
+        
+        // mvwprintw(debug_win, 6, 0, "End program: %d, thread function\n", (*end_program2));
+        // wrefresh(debug_win);
+
+        // mvprintw(5, 0, "Stuck\n");
+        
         // mvwprintw(debug_win, 0, 0, "type: %s,\t\tpass: %s\n", type, password);
         // wrefresh(debug_win);
         if (strcmp(type, password) != 0) {
             printf("Wrong password\n");
             endwin(); /* End curses mode */
             free_exit_l();
-            free_exit_display();
 
             exit(0);
         }
@@ -250,7 +255,7 @@ int main(int argc, char *argv[]) {
     password = (char *) malloc(bufsize * sizeof(char));
     if (password == NULL) {
         fprintf(stderr, "Unable to allocate memory\n");
-        free_exit_display();
+        free_exit_l();
         exit(0);
     }
 
@@ -326,90 +331,96 @@ int main(int argc, char *argv[]) {
 
     /* Lizard movement message type */
     m.msg_type = 3;
-
-    pthread_t thread_id;
-    bool end_program = false;
-
-    pthread_create(&thread_id, NULL, thread_function, &end_program);
-
-    do {
-
-        /* Get next movement from user */
-    	key = getch();
-        n++;
-        switch (key)
-        {
-        case KEY_LEFT:
-            // mvprintw(0,0,"%d :Left arrow is pressed ", n);
-            m.direction[0] = LEFT;
-            break;
-        case KEY_RIGHT:
-            // mvprintw(0,0,"%d :Right arrow is pressed", n);
-            m.direction[0] = RIGHT;
-            break;
-        case KEY_DOWN:
-            // mvprintw(0,0,"%d :Down arrow is pressed ", n);
-           m.direction[0] = DOWN;
-            break;
-        case KEY_UP:
-            // mvprintw(0,0,"%d :Up arrow is pressed   ", n);
-            m.direction[0] = UP;
-            break;
-        case 'q':
-        case 'Q':
-            // mvprintw(0,0,"Disconnect                 ");
-            disconnect = 1;
-            break;
-        default:
-            key = 'x'; 
-            break;
-        }
-
-        /* Send the movement message */
-        if (disconnect == 1) {
-            /* Message type for user disconnection */
-            m.msg_type = 4;
-            
-            end_program = true;
-        }
-        if (key != 'x') {
-            /* Send movement to server */
-
-            // mvwprintw(debug_win, 0, 0, "type: %d,\t\tch: %s,\t\tnchars: %d", m.msg_type, m.ch, m.nchars);
-            // wrefresh(debug_win);
-
-            zmq_send_RemoteChar(requester, &m);
-            // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
-            // assert(send != -1);
-            // recv = zmq_recv (requester, &my_score, sizeof(int), 0);
-            // assert(recv != -1);
-            my_score = zmq_read_Myscore(requester);
-
-            if (my_score == -1) { /* The request was not fullfilled */
-                // mvprintw(4, 0, "Connection failed!\t\t\t\n");
-                free_exit_l();
-                exit(0);
-            }
-            // else if (my_score == -1000) { /* The request was not fullfilled */
-            //     mvprintw(4, 0, "You have lost!\t\t\t\n");
-            //     free_exit_l();
-            //     exit(0);
-            // }
-            // else {
-            //     /* From server response, update user score */
-            //     mvprintw(4, 0, "Your score is %lf", my_score);
-            // }
-
-            
-        }
-        // refresh(); /* Print it on to the real screen */
-    } while(key != 27 && key != 'Q' && key != 'q');
     
-  	endwin(); /* End curses mode */
-    free_exit_l();
-    free_exit_display();
+    int end_program = 0;
+    pthread_t thread_id;
+
+    // mvprintw(3, 0, "1:Sou a thread %ld\n", thread_id);
+    pthread_create(&thread_id, NULL, thread_function, &end_program);
+    // mvprintw(4, 0, "2:Sou a thread %ld\n", thread_id);
+
+    if (!end_program) {
+        do {
+
+            /* Get next movement from user */
+            key = getch();
+            n++;
+            switch (key)
+            {
+            case KEY_LEFT:
+                // mvprintw(0,0,"%d :Left arrow is pressed ", n);
+                m.direction[0] = LEFT;
+                break;
+            case KEY_RIGHT:
+                // mvprintw(0,0,"%d :Right arrow is pressed", n);
+                m.direction[0] = RIGHT;
+                break;
+            case KEY_DOWN:
+                // mvprintw(0,0,"%d :Down arrow is pressed ", n);
+            m.direction[0] = DOWN;
+                break;
+            case KEY_UP:
+                // mvprintw(0,0,"%d :Up arrow is pressed   ", n);
+                m.direction[0] = UP;
+                break;
+            case 'q':
+            case 'Q':
+                // mvprintw(0,0,"Disconnect                 ");
+                disconnect = 1;
+                break;
+            default:
+                key = 'x'; 
+                break;
+            }
+
+            /* Send the movement message */
+            if (disconnect == 1) {
+                /* Message type for user disconnection */
+                m.msg_type = 4;
+                
+                end_program = 1;
+                zmq_send_RemoteChar(requester, &m);
+            }
+            else if (key != 'x') {
+                /* Send movement to server */
+
+                // mvwprintw(debug_win, 0, 0, "type: %d,\t\tch: %s,\t\tnchars: %d", m.msg_type, m.ch, m.nchars);
+                // wrefresh(debug_win);
+
+                zmq_send_RemoteChar(requester, &m);
+                // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
+                // assert(send != -1);
+                // recv = zmq_recv (requester, &my_score, sizeof(int), 0);
+                // assert(recv != -1);
+                my_score = zmq_read_Myscore(requester);
+
+                if (my_score == -1) { /* The request was not fullfilled */
+                    // mvprintw(4, 0, "Connection failed!\t\t\t\n");
+                    free_exit_l();
+                    exit(0);
+                }
+                // else if (my_score == -1000) { /* The request was not fullfilled */
+                //     mvprintw(4, 0, "You have lost!\t\t\t\n");
+                //     free_exit_l();
+                //     exit(0);
+                // }
+                // else {
+                //     /* From server response, update user score */
+                //     mvprintw(4, 0, "Your score is %lf", my_score);
+                // }
+
+                
+            }
+            // refresh(); /* Print it on to the real screen */
+        } while(key != 27 && key != 'Q' && key != 'q');
+
+    }
+    // mvwprintw(debug_win, 7, 0, "End program: %d, thread %ld\n", (end_program), thread_id);
+    // wrefresh(debug_win);  
 
     pthread_join(thread_id, NULL);
 
+    free_exit_l();
+    
 	return 0;
 }

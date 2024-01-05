@@ -12,6 +12,7 @@
 #define TAIL_SIZE 5
 #define RESPAWN_TIME 5000 /* ms */
 #define POINTS_TO_WIN 50
+#define TIMEOUT_THRESHOLD 10
 
 typedef enum direction_t {UP, DOWN, LEFT, RIGHT, NONE} direction_t;
 
@@ -38,6 +39,7 @@ typedef struct pos_roachesNwasps
     int nchars; 
     bool active[10];
     bool valid;
+    int64_t previous_interaction;
 } pos_roachesNwasps;
 
 typedef struct pos_lizards
@@ -48,6 +50,7 @@ typedef struct pos_lizards
     direction_t prevdirection;
     bool valid;
     bool alive;
+    int64_t previous_interaction;
 } pos_lizards;
 
 

@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -O3
-LIBS = -lzmq -lncurses -lprotobuf-c  # Add the Protobuf C library
+LIBS = -lzmq -lncurses -lprotobuf-c -lpthread
 
 # Define .PHONY to specify that 'all' and 'clean' are not files.
 .PHONY: all clean

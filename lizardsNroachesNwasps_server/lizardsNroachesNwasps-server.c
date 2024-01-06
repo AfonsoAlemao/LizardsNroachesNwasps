@@ -818,74 +818,45 @@ void *thread_function(void *arg) {
         // wrefresh(debug_win);
 
 
-        for (i = 0; i < MAX_ROACHES_PER_CLIENT; i++) {
-            if (client_roaches[i].valid) {
-                inactivity_time = now - client_roaches[i].previous_interaction;
-                if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    // s_field = pthread_mutex_lock(&mtx_field);
-                    // if (s_field != 0) {
-                    //     errExitEN(s_field, "pthread_mutex_lock");
-                    // }
+        
 
-                    // mvwprintw(debug_win, 1, 1, "entrei1\n");
+        // for (i = 0; i < MAX_ROACHES_PER_CLIENT; i++) {
+        //     if (client_roaches[i].valid) {
+        //         inactivity_time = now - client_roaches[i].previous_interaction;
+        //         if (inactivity_time > TIMEOUT_THRESHOLD) {
 
-                    // s_field = pthread_mutex_unlock(&mtx_field);
-                    // if (s_field != 0) {
-                    //     errExitEN(s_field, "pthread_mutex_unlock");
-                    // }
+        //             disconnect_roach(i);
+        //         }
+        //     }
+        // }
 
-                    disconnect_roach(i);
-                }
-            }
-        }
+        // for (i = 0; i < MAX_WASPS_PER_CLIENT; i++) {
+        //     if (client_wasps[i].valid) {
+        //         inactivity_time = now - client_wasps[i].previous_interaction;
+        //         if (inactivity_time > TIMEOUT_THRESHOLD) {
 
-        for (i = 0; i < MAX_WASPS_PER_CLIENT; i++) {
-            if (client_wasps[i].valid) {
-                inactivity_time = now - client_wasps[i].previous_interaction;
-                if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    // s_field = pthread_mutex_lock(&mtx_field);
-                    // if (s_field != 0) {
-                    //     errExitEN(s_field, "pthread_mutex_lock");
-                    // }
+        //             disconnect_wasp(i);
+        //         }
+        //     }
+        // }
 
-                    // mvwprintw(debug_win, 1, 1, "entrei2\n");
+        // for (i = 0; i < MAX_LIZARDS; i++) {
+        //     if (client_lizards[i].valid) {
+        //         inactivity_time = now - client_lizards[i].previous_interaction;
+        //         // mvwprintw(debug_win, 2, 1, "prev_iteraction: %ld", client_lizards[i].previous_interaction);
+        //         // wrefresh(debug_win);
+        //         // mvwprintw(debug_win, 3, 1, "inactive_time: %ld", inactivity_time);
+        //         // wrefresh(debug_win);
 
-                    // s_field = pthread_mutex_unlock(&mtx_field);
-                    // if (s_field != 0) {
-                    //     errExitEN(s_field, "pthread_mutex_unlock");
-                    // }
-
-                    disconnect_wasp(i);
-                }
-            }
-        }
-
-        for (i = 0; i < MAX_LIZARDS; i++) {
-            if (client_lizards[i].valid) {
-                inactivity_time = now - client_lizards[i].previous_interaction;
-                // mvwprintw(debug_win, 2, 1, "prev_iteraction: %ld", client_lizards[i].previous_interaction);
-                // wrefresh(debug_win);
-                // mvwprintw(debug_win, 3, 1, "inactive_time: %ld", inactivity_time);
-                // wrefresh(debug_win);
-
-                if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    // s_field = pthread_mutex_lock(&mtx_field);
-                    // if (s_field != 0) {
-                    //     errExitEN(s_field, "pthread_mutex_lock");
-                    // }
-
-                    // mvwprintw(debug_win, 1, 1, "entrei3\n");
-
-                    // s_field = pthread_mutex_unlock(&mtx_field);
-                    // if (s_field != 0) {
-                    //     errExitEN(s_field, "pthread_mutex_unlock");
-                    // }
+        //         if (inactivity_time > TIMEOUT_THRESHOLD) {
                     
-                    disconnect_lizard(i);
+        //             disconnect_lizard(i);
 
-                }
-            }
-        }
+        //         }
+        //     }
+        // }
+
+        
 
         
     }
@@ -931,9 +902,11 @@ bool disconnect_wasp(int index) {
         if (s_wasps != 0) {
             errExitEN(s_wasps, "pthread_mutex_lock");
         }
+        
         client_wasps[index].valid = false;
         n_clients_wasps--;
         total_wasps -= client_wasps[index].nchars;
+        
         s_wasps = pthread_mutex_unlock(&mtx_wasps);
         if (s_wasps != 0) {
             errExitEN(s_wasps, "pthread_mutex_unlock");
@@ -2079,7 +2052,6 @@ int main(int argc, char *argv[]) {
         }
         else if (m->msg_type == 7) { /* Movements from wasp client */
             
-
             /* Find wasp in client_wasps from its id */
             index_client_wasps_id = -1;
             for (int jjj = 0; jjj < n_clients_wasps;jjj++) {

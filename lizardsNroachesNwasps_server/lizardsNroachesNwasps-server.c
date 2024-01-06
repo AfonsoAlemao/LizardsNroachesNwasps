@@ -41,8 +41,8 @@ void *publisher;
 msg msg_publisher;
 char *password = NULL;
 int n_clients_roaches, n_clients_wasps, total_roaches, total_lizards, total_wasps;
-pthread_mutex_t mtx;
-int s;
+pthread_mutex_t mtx_roaches, mtx_wasps, mtx_lizards, mtx_field;
+int s_roaches, s_wasps, s_lizards, s_field;
 
 void new_position(int* x, int *y, direction_t direction);
 void split_health(list_element *head, int index_client);
@@ -117,9 +117,19 @@ void split_health(list_element *head, int index_client) {
     
     avg = avg / 2;
 
+    s_lizards = pthread_mutex_lock(&mtx_lizards);
+    if (s_lizards != 0) {
+        errExitEN(s_lizards, "pthread_mutex_lock");
+    }
+
     client_lizards[index_client].score = avg;
     client_lizards[current->data.index_client].score = avg;
     
+    s_lizards = pthread_mutex_unlock(&mtx_lizards);
+    if (s_lizards != 0) {
+        errExitEN(s_lizards, "pthread_mutex_unlock");
+    }
+
     return;
 }
 
@@ -129,7 +139,18 @@ void wasp_attack(list_element *head) {
 
     while (current != NULL) {
         if (current->data.element_type == 1) { /* Head of lizard */
+            s_lizards = pthread_mutex_lock(&mtx_lizards);
+            if (s_lizards != 0) {
+                errExitEN(s_lizards, "pthread_mutex_lock");
+            }
+
             client_lizards[current->data.index_client].score -= 10;
+
+            s_lizards = pthread_mutex_unlock(&mtx_lizards);
+            if (s_lizards != 0) {
+                errExitEN(s_lizards, "pthread_mutex_unlock");
+            }
+            
             if (client_lizards[current->data.index_client].score < 0) {
                 loser_lizard(current->data.index_client);
             }
@@ -158,12 +179,32 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
             if (current->data.element_type == 2) { 
                 /* Found roach */
 
+                s_lizards = pthread_mutex_lock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_lock");
+                }
+
                 /* Increase lizard score */
                 client_lizards[index_client].score += client_roaches[current->data.index_client].char_data[current->data.index_bot].ch - '0';
 
+                s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_unlock");
+                }
+
                 /* Disable cockroach */
+                s_roaches = pthread_mutex_lock(&mtx_roaches);
+                if (s_roaches != 0) {
+                    errExitEN(s_roaches, "pthread_mutex_lock");
+                }
+                
                 client_roaches[current->data.index_client].active[current->data.index_bot] = false;
 
+                s_roaches = pthread_mutex_unlock(&mtx_roaches);
+                if (s_roaches != 0) {
+                    errExitEN(s_roaches, "pthread_mutex_unlock");
+                }
+            
                 /* Insert roach in inactive roaches list with associated death time */
                 r.death_time = s_clock();
                 assert(r.death_time >= 0);
@@ -180,7 +221,16 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
                 s.element_type = current->data.element_type;
                 s.index_client = current->data.index_client;
                 s.index_bot = current->data.index_bot;
+                s_field = pthread_mutex_lock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_lock");
+                }
                 deletelist_element(&head, s);
+
+                s_field = pthread_mutex_unlock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_unlock");
+                }
                 break;
             }
             
@@ -221,16 +271,35 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
         new_data.index_client = index_client;
         new_data.index_bot = index_bot;
         if (ch == ' ') {
+            s_field = pthread_mutex_lock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_lock");
+            }
             /* Delete from list position xy in field */
             deletelist_element(&head, new_data);
+
+            s_field = pthread_mutex_unlock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_unlock");
+            }
+            
             if (head != NULL) {
                 /* Display an empty space or a previously hidden element in position xy*/
                 ch = check_prioritary_element(head); 
             }
         }
         else {
+            s_field = pthread_mutex_lock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_lock");
+            }
             /* Add to list position xy in field */
             check = insertBegin(&head, new_data);
+
+            s_field = pthread_mutex_unlock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_unlock");
+            }
             if (!check) {
                 fprintf(stderr, "Memory allocation failed\n");
                 free_exit();
@@ -272,6 +341,7 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client) {
     char display;
     int index_bot = -1;  
     int element_type = 0;
+    list_element *field_aux;
 
     /* If the game has already ended and there are no '*' on the playing field, 
     display a tail of '*' instead of ' ' */
@@ -291,9 +361,21 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client) {
     {
     case LEFT:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
-            if (y + kk < WINDOW_SIZE - 1) {
-                field[x][y + kk] = display_in_field(display, x, y + kk, index_client, 
+            if (y + kk < WINDOW_SIZE - 1) {          
+                field_aux = display_in_field(display, x, y + kk, index_client, 
                     index_bot, element_type, field[x][y + kk]);
+                
+                s_field = pthread_mutex_lock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_lock");
+                }
+
+                field[x][y + kk] = field_aux;
+
+                s_field = pthread_mutex_unlock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_unlock");
+                }
             }
         }
         break;
@@ -301,8 +383,19 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client) {
     case RIGHT:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (y - kk > 1) {
-                field[x][y - kk] = display_in_field(display, x, y - kk, index_client, 
+                field_aux = display_in_field(display, x, y - kk, index_client, 
                     index_bot, element_type, field[x][y - kk]);
+
+                s_field = pthread_mutex_lock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_lock");
+                }
+                field[x][y - kk] = field_aux;
+
+                s_field = pthread_mutex_unlock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_unlock");
+                }
             }
         }
         break;
@@ -310,8 +403,20 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client) {
     case DOWN:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (x - kk > 1) {
-                field[x - kk][y] = display_in_field(display, x - kk, y, index_client, 
+                field_aux = display_in_field(display, x - kk, y, index_client, 
                     index_bot, element_type, field[x - kk][y]);
+
+                s_field = pthread_mutex_lock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_lock");
+                }
+
+                field[x - kk][y] = field_aux;
+
+                s_field = pthread_mutex_unlock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_unlock");
+                }
             }
         }
         break;
@@ -319,8 +424,20 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client) {
     case UP:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (x + kk < WINDOW_SIZE - 1) {
-                field[x + kk][y] = display_in_field(display, x + kk, y, index_client, 
+                field_aux = display_in_field(display, x + kk, y, index_client, 
                     index_bot, element_type, field[x + kk][y]);
+
+                s_field = pthread_mutex_lock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_lock");
+                }
+                
+                field[x + kk][y] = field_aux;
+                
+                s_field = pthread_mutex_unlock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_unlock");
+                }
             }
         }
         break;
@@ -471,12 +588,17 @@ void ressurect_roaches() {
 
         /* This would be done even better with threads */
         if (inactive_time >= RESPAWN_TIME) {
-            // s = pthread_mutex_lock(&mtx);
-            // if (s != 0) {
-            //     errExitEN(s, "pthread_mutex_lock");
-            // }
+
 
             /* Activate roach*/
+        
+        
+        
+            s_roaches = pthread_mutex_lock(&mtx_roaches);
+            if (s_roaches != 0) {
+                errExitEN(s_roaches, "pthread_mutex_lock");
+            }
+            
             client_roaches[roaches_killed->data.index_client].active[roaches_killed->data.index_bot] = true;
         
             /* Compute its new random field position */
@@ -490,6 +612,12 @@ void ressurect_roaches() {
                     break;
                 }
             }
+            
+            s_roaches = pthread_mutex_unlock(&mtx_roaches);
+            if (s_roaches != 0) {
+                errExitEN(s_roaches, "pthread_mutex_unlock");
+            }
+            
             /* Remove from dead roaches fifo */
             pop_fifo(&roaches_killed);
 
@@ -518,6 +646,12 @@ void display_stats() {
         int i = 0;
         /* Ordered by name */
         for (int j = 0; j < MAX_LIZARDS; j++) {
+            
+            s_field = pthread_mutex_lock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_lock");
+            }
+
             mvwprintw(stats_win, j, 1, "\t\t\t\t\t");
             wrefresh(stats_win);
             if (client_lizards[j].valid) {
@@ -531,9 +665,15 @@ void display_stats() {
                 }
                 i++;
             }
+
+            s_field = pthread_mutex_unlock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_unlock");
+            }
         }
     }
 }
+
 
 /* Free allocated memory if an error occurs */
 void free_exit() {
@@ -556,6 +696,7 @@ void loser_lizard(int index) {
     int pos_x, pos_y;
     char ch;
     int index_bot, element_type;
+    list_element *field_aux;
 
     pos_x = client_lizards[index].char_data.pos_x;
     pos_y = client_lizards[index].char_data.pos_y;
@@ -569,16 +710,51 @@ void loser_lizard(int index) {
     element_type = 1;
 
     /* Remove roach from the playing field in old position */
-    field[pos_x][pos_y] = display_in_field(' ', pos_x, pos_y, index, 
+    field_aux = display_in_field(' ', pos_x, pos_y, index, 
         index_bot, element_type, field[pos_x][pos_y]);
+    
+    s_field = pthread_mutex_lock(&mtx_field);
+    if (s_field != 0) {
+        errExitEN(s_field, "pthread_mutex_lock");
+    }
+    
+    field[pos_x][pos_y] = field_aux;
+    
+    s_field = pthread_mutex_unlock(&mtx_field);
+    if (s_field != 0) {
+        errExitEN(s_field, "pthread_mutex_unlock");
+    }
+    
+    s_lizards = pthread_mutex_lock(&mtx_lizards);
+    if (s_lizards != 0) {
+        errExitEN(s_lizards, "pthread_mutex_lock");
+    }
 
     /* Inactivate lizard, and decrement number of lizards */
     client_lizards[index].alive = false;
 
+    s_lizards = pthread_mutex_unlock(&mtx_lizards);
+    if (s_lizards != 0) {
+        errExitEN(s_lizards, "pthread_mutex_unlock");
+    }
+
     // Add fake head to field
     element_type = 4; // fake lizard head
-    field[pos_x][pos_y] = display_in_field(ch, pos_x, pos_y, index, 
+    
+    field_aux = display_in_field(ch, pos_x, pos_y, index, 
         index_bot, element_type, field[pos_x][pos_y]);
+        
+    s_field = pthread_mutex_lock(&mtx_field);
+    if (s_field != 0) {
+        errExitEN(s_field, "pthread_mutex_lock");
+    }
+    
+    field[pos_x][pos_y] = field_aux;
+    
+    s_field = pthread_mutex_unlock(&mtx_field);
+    if (s_field != 0) {
+        errExitEN(s_field, "pthread_mutex_unlock");
+    }
 }
 
 RemoteChar  * zmq_read_RemoteChar(void * responder){
@@ -646,16 +822,19 @@ void *thread_function(void *arg) {
             if (client_roaches[i].valid) {
                 inactivity_time = now - client_roaches[i].previous_interaction;
                 if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    s = pthread_mutex_lock(&mtx);
-                    if (s != 0) {
-                        errExitEN(s, "pthread_mutex_lock");
-                    }
-                    disconnect_roach(i);
+                    // s_field = pthread_mutex_lock(&mtx_field);
+                    // if (s_field != 0) {
+                    //     errExitEN(s_field, "pthread_mutex_lock");
+                    // }
 
-                    s = pthread_mutex_unlock(&mtx);
-                    if (s != 0) {
-                        errExitEN(s, "pthread_mutex_unlock");
-                    }
+                    // mvwprintw(debug_win, 1, 1, "entrei1\n");
+
+                    // s_field = pthread_mutex_unlock(&mtx_field);
+                    // if (s_field != 0) {
+                    //     errExitEN(s_field, "pthread_mutex_unlock");
+                    // }
+
+                    disconnect_roach(i);
                 }
             }
         }
@@ -664,15 +843,19 @@ void *thread_function(void *arg) {
             if (client_wasps[i].valid) {
                 inactivity_time = now - client_wasps[i].previous_interaction;
                 if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    s = pthread_mutex_lock(&mtx);
-                    if (s != 0) {
-                        errExitEN(s, "pthread_mutex_lock");
-                    }
+                    // s_field = pthread_mutex_lock(&mtx_field);
+                    // if (s_field != 0) {
+                    //     errExitEN(s_field, "pthread_mutex_lock");
+                    // }
+
+                    // mvwprintw(debug_win, 1, 1, "entrei2\n");
+
+                    // s_field = pthread_mutex_unlock(&mtx_field);
+                    // if (s_field != 0) {
+                    //     errExitEN(s_field, "pthread_mutex_unlock");
+                    // }
+
                     disconnect_wasp(i);
-                    s = pthread_mutex_unlock(&mtx);
-                    if (s != 0) {
-                        errExitEN(s, "pthread_mutex_unlock");
-                    }
                 }
             }
         }
@@ -686,15 +869,20 @@ void *thread_function(void *arg) {
                 // wrefresh(debug_win);
 
                 if (inactivity_time > TIMEOUT_THRESHOLD) {
-                    s = pthread_mutex_lock(&mtx);
-                    if (s != 0) {
-                        errExitEN(s, "pthread_mutex_lock");
-                    }
+                    // s_field = pthread_mutex_lock(&mtx_field);
+                    // if (s_field != 0) {
+                    //     errExitEN(s_field, "pthread_mutex_lock");
+                    // }
+
+                    // mvwprintw(debug_win, 1, 1, "entrei3\n");
+
+                    // s_field = pthread_mutex_unlock(&mtx_field);
+                    // if (s_field != 0) {
+                    //     errExitEN(s_field, "pthread_mutex_unlock");
+                    // }
+                    
                     disconnect_lizard(i);
-                    s = pthread_mutex_unlock(&mtx);
-                    if (s != 0) {
-                        errExitEN(s, "pthread_mutex_unlock");
-                    }
+
                 }
             }
         }
@@ -707,29 +895,49 @@ void *thread_function(void *arg) {
 
 bool disconnect_wasp(int index) {
     int element_type, pos_x_wasps, pos_y_wasps, index_client, index_bot;
-    char ch = ' ';
+    list_element *field_aux;
+    
     if (index != -1) {
         for (int i = 0; i < client_wasps[index].nchars; i++) {
             if (client_wasps[index].active[i] == true) {
                 /* For each active wasp, compute its new position */
                 pos_x_wasps = client_wasps[index].char_data[i].pos_x;
                 pos_y_wasps = client_wasps[index].char_data[i].pos_y;
-                ch = client_wasps[index].char_data[i].ch;
 
                 index_client = index;
                 index_bot = i;  
                 element_type = 3;
 
-                /* Remove wasp from the playing field in old position */
-                field[pos_x_wasps][pos_y_wasps] = display_in_field(' ', pos_x_wasps, pos_y_wasps, index_client, 
+                field_aux = display_in_field(' ', pos_x_wasps, pos_y_wasps, index_client, 
                     index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);
+                    
+                s_field = pthread_mutex_lock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_lock");
+                }
+                /* Remove wasp from the playing field in old position */
+                field[pos_x_wasps][pos_y_wasps] = field_aux;
+                
+                s_field = pthread_mutex_unlock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_unlock");
+                }
             }
         }
 
         /* Inactivate wasp, and decrement number of wasps */
+
+        s_wasps = pthread_mutex_lock(&mtx_wasps);
+        if (s_wasps != 0) {
+            errExitEN(s_wasps, "pthread_mutex_lock");
+        }
         client_wasps[index].valid = false;
         n_clients_wasps--;
         total_wasps -= client_wasps[index].nchars;
+        s_wasps = pthread_mutex_unlock(&mtx_wasps);
+        if (s_wasps != 0) {
+            errExitEN(s_wasps, "pthread_mutex_unlock");
+        }
         return true;
 
     }
@@ -738,29 +946,51 @@ bool disconnect_wasp(int index) {
 
 bool disconnect_roach(int index) {
     int element_type, pos_x_roaches, pos_y_roaches, index_client, index_bot;
-    char ch = ' ';
+    list_element *field_aux;
+    
     if (index != -1) {
         for (int i = 0; i < client_roaches[index].nchars; i++) {
             if (client_roaches[index].active[i] == true) {
                 /* For each active roach, compute its new position */
                 pos_x_roaches = client_roaches[index].char_data[i].pos_x;
                 pos_y_roaches = client_roaches[index].char_data[i].pos_y;
-                ch = client_roaches[index].char_data[i].ch;
 
                 index_client = index;
                 index_bot = i;  
                 element_type = 3;
 
-                /* Remove roach from the playing field in old position */
-                field[pos_x_roaches][pos_y_roaches] = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
+                field_aux = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
                     index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
+
+                s_field = pthread_mutex_lock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_lock");
+                }
+            
+                /* Remove roach from the playing field in old position */
+                field[pos_x_roaches][pos_y_roaches] = field_aux;
+                
+                s_field = pthread_mutex_unlock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_unlock");
+                }
             }
+        }
+        
+        s_roaches = pthread_mutex_lock(&mtx_roaches);
+        if (s_roaches != 0) {
+            errExitEN(s_roaches, "pthread_mutex_lock");
         }
         
         /* Inactivate roach, and decrement number of roaches */
         client_roaches[index].valid = false;
         n_clients_roaches--;
         total_roaches -= client_roaches[index].nchars;
+        
+        s_roaches = pthread_mutex_unlock(&mtx_roaches);
+        if (s_roaches != 0) {
+            errExitEN(s_roaches, "pthread_mutex_unlock");
+        }
         return true;
     }
     return false;
@@ -768,11 +998,14 @@ bool disconnect_roach(int index) {
 
 bool disconnect_lizard(int index) {
     int element_type, pos_x_lizards, pos_y_lizards, index_client, index_bot;
-    char ch = ' ';
+    list_element *field_aux;
+
+    mvwprintw(debug_win, 1, 0, "%d\n", index);
+    wrefresh(debug_win);
+
     if (index != -1) {
         pos_x_lizards = client_lizards[index].char_data.pos_x;
         pos_y_lizards = client_lizards[index].char_data.pos_y;
-        ch = client_lizards[index].char_data.ch;
 
         if (client_lizards[index].alive) {
             /* Remove lizard tail from the playing field in the old position */
@@ -785,19 +1018,55 @@ bool disconnect_lizard(int index) {
         element_type = 1;
 
         if (client_lizards[index].alive) {
-            /* Remove lizard from the playing field in old position */
-            field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+            field_aux = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
                 index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+            
+            s_field = pthread_mutex_lock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_lock");
+            }
+            
+            /* Remove lizard from the playing field in old position */
+            field[pos_x_lizards][pos_y_lizards] = field_aux;
+            
+            s_field = pthread_mutex_unlock(&mtx_field); 
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_unlock");
+            }
         }
         else {
             element_type = 4;
-            field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+            
+            field_aux = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
                 index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+                
+            s_field = pthread_mutex_lock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_lock");
+            }
+
+            field[pos_x_lizards][pos_y_lizards] = field_aux;
+
+            s_field = pthread_mutex_unlock(&mtx_field);
+            if (s_field != 0) {
+                errExitEN(s_field, "pthread_mutex_unlock");
+            }
         }
 
+        s_lizards = pthread_mutex_lock(&mtx_lizards);
+        if (s_lizards != 0) {
+            errExitEN(s_lizards, "pthread_mutex_lock");
+        }
+        
         /* Inactivate lizard, and decrement number of lizards */
         client_lizards[index].valid = false;
         total_lizards--;
+
+        s_lizards = pthread_mutex_unlock(&mtx_lizards);
+        if (s_lizards != 0) {
+            errExitEN(s_lizards, "pthread_mutex_unlock");
+        }
+        
         return true;
     }
     return false;
@@ -818,18 +1087,34 @@ int main(int argc, char *argv[]) {
     double to_send;
     bool success;
     
+    
+    roaches_killed = NULL;
+
     n_clients_roaches = 0; 
     n_clients_wasps = 0; 
     total_roaches = 0; 
     total_lizards = 0;
     total_wasps = 0;
 
-    s = pthread_mutex_init(&mtx, NULL);
-    if (s != 0) {
-        errExitEN(s, "pthread_mutex_init");
+    s_lizards = pthread_mutex_init(&mtx_lizards, NULL);
+    if (s_lizards != 0) {
+        errExitEN(s_lizards, "pthread_mutex_init");
     }
-    
-    
+
+    s_wasps = pthread_mutex_init(&mtx_wasps, NULL);
+    if (s_wasps != 0) {
+        errExitEN(s_wasps, "pthread_mutex_init");
+    }
+
+    s_roaches = pthread_mutex_init(&mtx_roaches, NULL);
+    if (s_roaches != 0) {
+        errExitEN(s_roaches, "pthread_mutex_init");
+    }
+
+    s_field = pthread_mutex_init(&mtx_field, NULL);
+    if (s_field != 0) {
+        errExitEN(s_field, "pthread_mutex_init");
+    }
     
     /* Check if the correct number of arguments is provided */
     if (argc != 3) {
@@ -984,11 +1269,9 @@ int main(int argc, char *argv[]) {
     pthread_t thread_id;
     pthread_create(&thread_id, NULL, thread_function, NULL);
 
+    list_element *field_aux_main;
+
     while (1) {
-        s = pthread_mutex_lock(&mtx);
-        if (s != 0) {
-            errExitEN(s, "pthread_mutex_lock");
-        }
         
         /* Receive client message */ 
         m = zmq_read_RemoteChar(responder);
@@ -1052,17 +1335,32 @@ int main(int argc, char *argv[]) {
                 // send = zmq_send (responder, &ok, sizeof(int), 0);
                 // assert(send != -1);
                 ok = 1;
+
                 
+                s_roaches = pthread_mutex_lock(&mtx_roaches);
+                if (s_roaches != 0) {
+                    errExitEN(s_roaches, "pthread_mutex_lock");
+                }
                 client_roaches[index_of_position_to_insert].id = m->id;
                 client_roaches[index_of_position_to_insert].nchars = m->nchars;
                 client_roaches[index_of_position_to_insert].valid = true;
                 client_roaches[index_of_position_to_insert].previous_interaction = s_clock();
                 assert(client_roaches[index_of_position_to_insert].previous_interaction >= 0);
 
+                s_roaches = pthread_mutex_unlock(&mtx_roaches);
+                if (s_roaches != 0) {
+                    errExitEN(s_roaches, "pthread_mutex_unlock");
+                }
+
                 for (i = 0; i < m->nchars; i++) {
                     /* Insert in server each roach information */
+                    s_roaches = pthread_mutex_lock(&mtx_roaches);
+                    if (s_roaches != 0) {
+                        errExitEN(s_roaches, "pthread_mutex_lock");
+                    }
                     client_roaches[index_of_position_to_insert].char_data[i].ch = m->ch[i];
                     client_roaches[index_of_position_to_insert].active[i] = true;
+
 
                     /* Compute roach initial random position */
                     while (1) {
@@ -1075,6 +1373,10 @@ int main(int argc, char *argv[]) {
                             break;
                         }
                     }
+                    s_roaches = pthread_mutex_unlock(&mtx_roaches);
+                    if (s_roaches != 0) {
+                        errExitEN(s_roaches, "pthread_mutex_unlock");
+                    }
                     
                     pos_x_roaches = client_roaches[index_of_position_to_insert].char_data[i].pos_x;
                     pos_y_roaches = client_roaches[index_of_position_to_insert].char_data[i].pos_y;
@@ -1084,13 +1386,33 @@ int main(int argc, char *argv[]) {
                     index_bot = i;  
                     element_type = 2;
 
+                    field_aux_main = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
+                        index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
                     /* Insert roach into the playing field */
-                    field[pos_x_roaches][pos_y_roaches] = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
-                        index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);   
+                    s_field = pthread_mutex_lock(&mtx_field);
+                    if (s_field != 0) {
+                        errExitEN(s_field, "pthread_mutex_lock");
+                    }
+                    field[pos_x_roaches][pos_y_roaches] = field_aux_main;
+
+                    s_field = pthread_mutex_unlock(&mtx_field);
+                    if (s_field != 0) {
+                        errExitEN(s_field, "pthread_mutex_unlock");
+                    }
+                }
+
+                s_roaches = pthread_mutex_lock(&mtx_roaches);
+                if (s_roaches != 0) {
+                    errExitEN(s_roaches, "pthread_mutex_lock");
                 }
                 /* Increase number of client_roaches and number of roaches*/
                 n_clients_roaches++;
                 total_roaches += m->nchars;
+
+                s_roaches = pthread_mutex_unlock(&mtx_roaches);
+                if (s_roaches != 0) {
+                    errExitEN(s_roaches, "pthread_mutex_unlock");
+                }
             }
             else {
                 /* Send successful response to client */
@@ -1114,9 +1436,20 @@ int main(int argc, char *argv[]) {
             }
 
             if (index_client_roaches_id != -1) {
+                s_roaches = pthread_mutex_lock(&mtx_roaches);
+                if (s_roaches != 0) {
+                    errExitEN(s_roaches, "pthread_mutex_lock");
+                }
+                
                 client_roaches[index_client_roaches_id].previous_interaction = s_clock();
                 assert(client_roaches[index_client_roaches_id].previous_interaction >= 0);
 
+                s_roaches = pthread_mutex_unlock(&mtx_roaches);
+                if (s_roaches != 0) {
+                    errExitEN(s_roaches, "pthread_mutex_unlock");
+                }
+                
+                
                 /* Send successful response to client */
                 zmq_send_OkMessage(responder, ok);
                 // send = zmq_send (responder, &ok, sizeof(int), 0);
@@ -1142,19 +1475,53 @@ int main(int argc, char *argv[]) {
                                 index_bot = i;  
                                 element_type = 2;
 
-                                /* Remove roach from the playing field in old position */
-                                field[pos_x_roaches][pos_y_roaches] = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
+                                field_aux_main = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
                                     index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
+                                /* Remove roach from the playing field in old position */
+                                s_field = pthread_mutex_lock(&mtx_field);
+                                if (s_field != 0) {
+                                    errExitEN(s_field, "pthread_mutex_lock");
+                                }
+                                field[pos_x_roaches][pos_y_roaches] = field_aux_main;
+
+                                s_field = pthread_mutex_unlock(&mtx_field);
+                                if (s_field != 0) {
+                                    errExitEN(s_field, "pthread_mutex_unlock");
+                                }
 
                                 /* Updates roach position */
                                 pos_x_roaches = pos_x_roaches_aux;
                                 pos_y_roaches = pos_y_roaches_aux;
+
+                                s_roaches = pthread_mutex_lock(&mtx_roaches);
+                                if (s_roaches != 0) {
+                                    errExitEN(s_roaches, "pthread_mutex_lock");
+                                }
+                                
                                 client_roaches[index_client_roaches_id].char_data[i].pos_x = pos_x_roaches;
                                 client_roaches[index_client_roaches_id].char_data[i].pos_y = pos_y_roaches;
 
-                                /* Insert roach into the playing field in new position */
-                                field[pos_x_roaches][pos_y_roaches] = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
+                                s_roaches = pthread_mutex_unlock(&mtx_roaches);
+                                if (s_roaches != 0) {
+                                    errExitEN(s_roaches, "pthread_mutex_unlock");
+                                }
+
+                                field_aux_main = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
                                     index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
+
+                                /* Insert roach into the playing field in new position */
+                                
+                                s_field = pthread_mutex_lock(&mtx_field);
+                                if (s_field != 0) {
+                                    errExitEN(s_field, "pthread_mutex_lock");
+                                }
+                                
+                                field[pos_x_roaches][pos_y_roaches] = field_aux_main;
+
+                                s_field = pthread_mutex_unlock(&mtx_field);
+                                if (s_field != 0) {
+                                    errExitEN(s_field, "pthread_mutex_unlock");
+                                }
                             }
                         }
                     }
@@ -1216,7 +1583,6 @@ int main(int argc, char *argv[]) {
                     break;
                 }
             }
-
             if (index_of_position_to_insert != -1) {
 
                 ok = (int) 'a' + index_of_position_to_insert;
@@ -1228,17 +1594,38 @@ int main(int argc, char *argv[]) {
                 ok = 1;
 
                 /* Initialize lizard attributes */
+
+                s_lizards = pthread_mutex_lock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_lock");
+                }
+
                 client_lizards[index_of_position_to_insert].id = m->id;
                 client_lizards[index_of_position_to_insert].score = 0;
                 client_lizards[index_of_position_to_insert].valid = true;
                 client_lizards[index_of_position_to_insert].alive = true;
                 client_lizards[index_of_position_to_insert].previous_interaction = s_clock();
                 assert(client_lizards[index_of_position_to_insert].previous_interaction >= 0);
+                
+                s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_unlock");
+                }
 
                 /* Compute lizard initial random position */
                 while (1) {
+                    s_lizards = pthread_mutex_lock(&mtx_lizards);
+                    if (s_lizards != 0) {
+                        errExitEN(s_lizards, "pthread_mutex_lock");
+                    }
+
                     client_lizards[index_of_position_to_insert].char_data.pos_x =  rand() % (WINDOW_SIZE - 2) + 1;
                     client_lizards[index_of_position_to_insert].char_data.pos_y =  rand() % (WINDOW_SIZE - 2) + 1;
+
+                    s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                    if (s_lizards != 0) {
+                        errExitEN(s_lizards, "pthread_mutex_unlock");
+                    }
 
                     /* Verify if new position matches the position of anothers' head lizard or wasp */
                     if (check_in_square(field[client_lizards[index_of_position_to_insert].char_data.pos_x]
@@ -1247,7 +1634,17 @@ int main(int argc, char *argv[]) {
                     }
                 }
 
+                s_lizards = pthread_mutex_lock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_lock");
+                }
+
                 client_lizards[index_of_position_to_insert].char_data.ch = (char) ((int) 'a' + index_of_position_to_insert);
+                
+                s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_unlock");
+                }
 
                 pos_x_lizards = client_lizards[index_of_position_to_insert].char_data.pos_x;
                 pos_y_lizards = client_lizards[index_of_position_to_insert].char_data.pos_y;
@@ -1260,17 +1657,49 @@ int main(int argc, char *argv[]) {
                 tail(m->direction[0], pos_x_lizards, pos_y_lizards, 
                     false, index_of_position_to_insert);
 
+                s_lizards = pthread_mutex_lock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_lock");
+                }
+
                 client_lizards[index_of_position_to_insert].prevdirection = m->direction[0];
+
+                s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_unlock");
+                }
 
                 index_client = index_of_position_to_insert;
                 index_bot = -1;  
                 element_type = 1;
 
-                /* Insert lizard into the playing field */
-                field[pos_x_lizards][pos_y_lizards] = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
+                field_aux_main = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
                     index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
 
+                /* Insert lizard into the playing field */
+                s_field = pthread_mutex_lock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_lock");
+                }
+
+                field[pos_x_lizards][pos_y_lizards] = field_aux_main;
+
+                s_field = pthread_mutex_unlock(&mtx_field);
+                if (s_field != 0) {
+                    errExitEN(s_field, "pthread_mutex_unlock");
+                }
+
+                s_lizards = pthread_mutex_lock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_lock");
+                }
+                
                 total_lizards++;
+
+                s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_unlock");
+                }
             }
             else {
                 /* Send unsuccessful response to client */
@@ -1291,12 +1720,23 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (index_client_lizards_id != -1) {
+                s_lizards = pthread_mutex_lock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_lock");
+                }
+
                 client_lizards[index_client_lizards_id].previous_interaction = s_clock();
                 assert(client_lizards[index_client_lizards_id].previous_interaction >= 0);
+
+                s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                if (s_lizards != 0) {
+                    errExitEN(s_lizards, "pthread_mutex_unlock");
+                }
 
                 pos_x_lizards = client_lizards[index_client_lizards_id].char_data.pos_x;
                 pos_y_lizards = client_lizards[index_client_lizards_id].char_data.pos_y;
                 ch = client_lizards[index_client_lizards_id].char_data.ch;
+
 
                 pos_x_lizards_aux = pos_x_lizards;
                 pos_y_lizards_aux = pos_y_lizards;
@@ -1322,21 +1762,67 @@ int main(int argc, char *argv[]) {
                         index_bot = -1;  
                         element_type = 1;              
 
-                        /* Remove lizard from the playing field in old position */
-                        field[pos_x_lizards][pos_y_lizards] = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
+                        field_aux_main = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
                             index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+
+                        /* Remove lizard from the playing field in old position */
+                        
+                        s_field = pthread_mutex_lock(&mtx_field);
+                        if (s_field != 0) {
+                            errExitEN(s_field, "pthread_mutex_lock");
+                        }
+                        
+                        field[pos_x_lizards][pos_y_lizards] = field_aux_main;
+
+                        s_field = pthread_mutex_unlock(&mtx_field);
+                        if (s_field != 0) {
+                            errExitEN(s_field, "pthread_mutex_unlock");
+                        }
 
                         /* Calculates new mark position */
                         pos_x_lizards = pos_x_lizards_aux;
                         pos_y_lizards = pos_y_lizards_aux;
+
+                        s_lizards = pthread_mutex_lock(&mtx_lizards);
+                        if (s_lizards != 0) {
+                            errExitEN(s_lizards, "pthread_mutex_lock");
+                        }
                         client_lizards[index_client_lizards_id].char_data.pos_x = pos_x_lizards;
                         client_lizards[index_client_lizards_id].char_data.pos_y = pos_y_lizards;
 
-                        /* Insert lizard into the playing field in new position */
-                        field[pos_x_lizards][pos_y_lizards] = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
+                        s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                        if (s_lizards != 0) {
+                            errExitEN(s_lizards, "pthread_mutex_unlock");
+                        }
+
+                        field_aux_main = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
                             index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
+
+                        /* Insert lizard into the playing field in new position */
+                        
+                        s_field = pthread_mutex_lock(&mtx_field);
+                        if (s_field != 0) {
+                            errExitEN(s_field, "pthread_mutex_lock");
+                        }
+                        
+                        field[pos_x_lizards][pos_y_lizards] = field_aux_main;
+                            
+                        s_field = pthread_mutex_unlock(&mtx_field);
+                        if (s_field != 0) {
+                            errExitEN(s_field, "pthread_mutex_unlock");
+                        }
+
+                        s_lizards = pthread_mutex_lock(&mtx_lizards);
+                        if (s_lizards != 0) {
+                            errExitEN(s_lizards, "pthread_mutex_lock");
+                        }
                         
                         client_lizards[index_client_lizards_id].prevdirection = m->direction[0];
+
+                        s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                        if (s_lizards != 0) {
+                            errExitEN(s_lizards, "pthread_mutex_unlock");
+                        }
 
                         /* Check if lizard won the game */
                         if (client_lizards[index_client].score >= POINTS_TO_WIN && end_game == 0) {
@@ -1353,7 +1839,19 @@ int main(int argc, char *argv[]) {
                         split_health(field[pos_x_lizards_aux][pos_y_lizards_aux], index_client_lizards_id);
                     }
                     else { // wasp
+                        
+                        s_lizards = pthread_mutex_lock(&mtx_lizards);
+                        if (s_lizards != 0) {
+                            errExitEN(s_lizards, "pthread_mutex_lock");
+                        }
+
                         client_lizards[index_client_lizards_id].score -= 10;
+
+                        s_lizards = pthread_mutex_unlock(&mtx_lizards);
+                        if (s_lizards != 0) {
+                            errExitEN(s_lizards, "pthread_mutex_unlock");
+                        }
+
                         if (client_lizards[index_client_lizards_id].score < 0) {
                             loser_lizard(index_client_lizards_id);
                         }
@@ -1487,14 +1985,29 @@ int main(int argc, char *argv[]) {
                 ok = 1;
 
             
+                s_wasps = pthread_mutex_lock(&mtx_wasps);
+                if (s_wasps != 0) {
+                    errExitEN(s_wasps, "pthread_mutex_lock");
+                }
+                
                 client_wasps[index_of_position_to_insert].id = m->id;
                 client_wasps[index_of_position_to_insert].nchars = m->nchars;
                 client_wasps[index_of_position_to_insert].valid = true;
                 client_wasps[index_of_position_to_insert].previous_interaction = s_clock();
                 assert(client_wasps[index_of_position_to_insert].previous_interaction >= 0);
 
+                s_wasps = pthread_mutex_unlock(&mtx_wasps);
+                if (s_wasps != 0) {
+                    errExitEN(s_wasps, "pthread_mutex_unlock");
+                }
+        
                 for (i = 0; i < m->nchars; i++) {
                     /* Insert in server each wasp information */
+                    s_wasps = pthread_mutex_lock(&mtx_wasps);
+                    if (s_wasps != 0) {
+                        errExitEN(s_wasps, "pthread_mutex_lock");
+                    }
+
                     client_wasps[index_of_position_to_insert].char_data[i].ch = m->ch[i];
                     client_wasps[index_of_position_to_insert].active[i] = true;
 
@@ -1509,6 +2022,11 @@ int main(int argc, char *argv[]) {
                             break;
                         }
                     }
+
+                    s_wasps = pthread_mutex_unlock(&mtx_wasps);
+                    if (s_wasps != 0) {
+                        errExitEN(s_wasps, "pthread_mutex_unlock");
+                    }
                     
                     pos_x_wasps = client_wasps[index_of_position_to_insert].char_data[i].pos_x;
                     pos_y_wasps = client_wasps[index_of_position_to_insert].char_data[i].pos_y;
@@ -1518,14 +2036,37 @@ int main(int argc, char *argv[]) {
                     index_bot = i;  
                     element_type = 3;
 
+                    field_aux_main = display_in_field(ch, pos_x_wasps, pos_y_wasps, index_client, 
+                        index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);
+                        
                     /* Insert wasp into the playing field */
-                    field[pos_x_wasps][pos_y_wasps] = display_in_field(ch, pos_x_wasps, pos_y_wasps, index_client, 
-                        index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);   
+                    
+                    s_field = pthread_mutex_lock(&mtx_field);
+                    if (s_field != 0) {
+                        errExitEN(s_field, "pthread_mutex_lock");
+                    }
+                    
+                    field[pos_x_wasps][pos_y_wasps] = field_aux_main;
+
+                    s_field = pthread_mutex_unlock(&mtx_field);
+                    if (s_field != 0) {
+                        errExitEN(s_field, "pthread_mutex_unlock");
+                    }
                 }
                 
                 /* Increase number of client_wasps and number of wasps*/
+                s_wasps = pthread_mutex_lock(&mtx_wasps);
+                if (s_wasps != 0) {
+                    errExitEN(s_wasps, "pthread_mutex_lock");
+                }
+                
                 n_clients_wasps++;
                 total_wasps += m->nchars;
+
+                s_wasps = pthread_mutex_unlock(&mtx_wasps);
+                if (s_wasps != 0) {
+                    errExitEN(s_wasps, "pthread_mutex_unlock");
+                }
             }
             else {
                 /* Send unsuccessful response to client */
@@ -1548,8 +2089,18 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (index_client_wasps_id != -1) {
+                s_wasps = pthread_mutex_lock(&mtx_wasps);
+                if (s_wasps != 0) {
+                    errExitEN(s_wasps, "pthread_mutex_lock");
+                }
+                
                 client_wasps[index_client_wasps_id].previous_interaction = s_clock();
                 assert(client_wasps[index_client_wasps_id].previous_interaction >= 0);
+
+                s_wasps = pthread_mutex_unlock(&mtx_wasps);
+                if (s_wasps != 0) {
+                    errExitEN(s_wasps, "pthread_mutex_unlock");
+                }
 
                 /* Send successful response to client */
                 zmq_send_OkMessage(responder, ok);
@@ -1577,19 +2128,55 @@ int main(int argc, char *argv[]) {
                                 index_bot = i;  
                                 element_type = 3;
 
-                                /* Remove wasp from the playing field in old position */
-                                field[pos_x_wasps][pos_y_wasps] = display_in_field(' ', pos_x_wasps, pos_y_wasps, index_client, 
+                                field_aux_main = display_in_field(' ', pos_x_wasps, pos_y_wasps, index_client, 
                                     index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);
+
+                                /* Remove wasp from the playing field in old position */
+                                
+                                s_field = pthread_mutex_lock(&mtx_field);
+                                if (s_field != 0) {
+                                    errExitEN(s_field, "pthread_mutex_lock");
+                                }
+                                
+                                field[pos_x_wasps][pos_y_wasps] = field_aux_main;
+
+                                s_field = pthread_mutex_unlock(&mtx_field);
+                                if (s_field != 0) {
+                                    errExitEN(s_field, "pthread_mutex_unlock");
+                                }
 
                                 /* Updates wasp position */
                                 pos_x_wasps = pos_x_wasps_aux;
                                 pos_y_wasps = pos_y_wasps_aux;
+                                
+                                s_wasps = pthread_mutex_lock(&mtx_wasps);
+                                if (s_wasps != 0) {
+                                    errExitEN(s_wasps, "pthread_mutex_lock");
+                                }
+                                
                                 client_wasps[index_client_wasps_id].char_data[i].pos_x = pos_x_wasps;
                                 client_wasps[index_client_wasps_id].char_data[i].pos_y = pos_y_wasps;
+   
+                                s_wasps = pthread_mutex_unlock(&mtx_wasps);
+                                if (s_wasps != 0) {
+                                    errExitEN(s_wasps, "pthread_mutex_unlock");
+                                }
 
-                                /* Insert wasp into the playing field in new position */
-                                field[pos_x_wasps][pos_y_wasps] = display_in_field(ch, pos_x_wasps, pos_y_wasps, index_client, 
+                                field_aux_main = display_in_field(ch, pos_x_wasps, pos_y_wasps, index_client, 
                                     index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);
+                                /* Insert wasp into the playing field in new position */
+                                
+                                s_field = pthread_mutex_lock(&mtx_field);
+                                if (s_field != 0) {
+                                    errExitEN(s_field, "pthread_mutex_lock");
+                                }
+                                
+                                field[pos_x_wasps][pos_y_wasps] = field_aux_main;
+
+                                s_field = pthread_mutex_unlock(&mtx_field);
+                                if (s_field != 0) {
+                                    errExitEN(s_field, "pthread_mutex_unlock");
+                                }
                             }
                             else if (check == 1) {
                                 wasp_attack(field[pos_x_wasps_aux][pos_y_wasps_aux]);
@@ -1640,16 +2227,27 @@ int main(int argc, char *argv[]) {
         /* Display lizards stats: name and score */
         display_stats();
 
-        s = pthread_mutex_unlock(&mtx);
-        if (s != 0) {
-            errExitEN(s, "pthread_mutex_unlock");
-        }
     }
 
 
-    s = pthread_mutex_destroy(&mtx);
-    if (s != 0) {
-        errExitEN(s, "pthread_mutexattr_destroy");
+    s_lizards = pthread_mutex_destroy(&mtx_lizards);
+    if (s_lizards != 0) {
+        errExitEN(s_lizards, "pthread_mutexattr_destroy");
+    }
+
+    s_roaches = pthread_mutex_destroy(&mtx_roaches);
+    if (s_roaches != 0) {
+        errExitEN(s_roaches, "pthread_mutexattr_destroy");
+    }
+
+    s_wasps = pthread_mutex_destroy(&mtx_wasps);
+    if (s_wasps != 0) {
+        errExitEN(s_wasps, "pthread_mutexattr_destroy");
+    }
+
+    s_field = pthread_mutex_destroy(&mtx_field);
+    if (s_field != 0) {
+        errExitEN(s_field, "pthread_mutexattr_destroy");
     }
 
 

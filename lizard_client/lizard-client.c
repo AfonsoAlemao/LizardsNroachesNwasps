@@ -344,7 +344,7 @@ int main(int argc, char *argv[]) {
 
             /* Get next movement from user */
             key = getch();
-            n++;
+            // n++;
             switch (key)
             {
             case KEY_LEFT:

@@ -41,6 +41,8 @@ void *publisher;
 msg msg_publisher;
 char *password = NULL;
 int n_clients_roaches, n_clients_wasps, total_roaches, total_lizards, total_wasps;
+pthread_mutex_t mtx;
+int s;
 
 void new_position(int* x, int *y, direction_t direction);
 void split_health(list_element *head, int index_client);
@@ -55,8 +57,15 @@ list_element ***allocate3DArray();
 void free3DArray(list_element ***table);
 void ressurect_roaches();
 void free_exit();
-bool disconnect_wasp(int index, RemoteChar *m);
+bool disconnect_wasp(int index);
+bool disconnect_roach(int index);
+bool disconnect_lizard(int index);
 
+void errExitEN(int s, const char *msg) {
+    
+    fprintf(stderr, "%s error: %d\n", msg, s);
+    exit(EXIT_FAILURE);
+}
 
 /* Apply movement to get new position */
 void new_position(int *x, int *y, direction_t direction) {
@@ -462,6 +471,11 @@ void ressurect_roaches() {
 
         /* This would be done even better with threads */
         if (inactive_time >= RESPAWN_TIME) {
+            // s = pthread_mutex_lock(&mtx);
+            // if (s != 0) {
+            //     errExitEN(s, "pthread_mutex_lock");
+            // }
+
             /* Activate roach*/
             client_roaches[roaches_killed->data.index_client].active[roaches_killed->data.index_bot] = true;
         
@@ -478,6 +492,12 @@ void ressurect_roaches() {
             }
             /* Remove from dead roaches fifo */
             pop_fifo(&roaches_killed);
+
+            // s = pthread_mutex_unlock(&mtx);
+            // if (s != 0) {
+            //     errExitEN(s, "pthread_mutex_unlock");
+            // }
+            
         }      
         else {
             break;
@@ -605,53 +625,91 @@ void zmq_send_MyScore(void * responder, double my_score){
 
 
 
-// void *thread_function(void *arg) {
-//     int64_t now, inactivity_time;
-//     int i = 0;
+void *thread_function(void *arg) {
+    int64_t now, inactivity_time;
+    int i = 0;
     
-//     while(1) {
+    while(1) {
         
-//         now = s_clock();
-//         assert(now >= 0);
+        /* Deal with ressurection of dead roaches (after respawn time) */
+        
+        ressurect_roaches();
+        
+        now = s_clock();
+        assert(now >= 0);
 
-//         for (i = 0; i < MAX_ROACHES_PER_CLIENT; i++) {
-//             if (client_roaches[i].valid) {
-//                 inactivity_time = now - client_roaches[i].previous_interaction;
-//                 if (inactivity_time > TIMEOUT_THRESHOLD) {
-//                     disconnect_roach(i);
-//                 }
-//             }
-//         }
+        // mvwprintw(debug_win, 1, 1, "now: %ld", now);
+        // wrefresh(debug_win);
 
-//         for (i = 0; i < MAX_WASPS_PER_CLIENT; i++) {
-//             if (client_wasps[i].valid) {
-//                 inactivity_time = now - client_roaches[i].previous_interaction;
-//                 if (inactivity_time > TIMEOUT_THRESHOLD) {
-//                     disconnect_wasp(i, m);
-//                 }
-//             }
-//         }
 
-//         for (i = 0; i < MAX_LIZARDS; i++) {
-//             if (client_lizards[i].valid) {
-//                 inactivity_time = now - client_roaches[i].previous_interaction;
-//                 if (inactivity_time > TIMEOUT_THRESHOLD) {
-//                     disconnect_lizard(i, m);
-//                 }
-//             }
-//         }
+        for (i = 0; i < MAX_ROACHES_PER_CLIENT; i++) {
+            if (client_roaches[i].valid) {
+                inactivity_time = now - client_roaches[i].previous_interaction;
+                if (inactivity_time > TIMEOUT_THRESHOLD) {
+                    s = pthread_mutex_lock(&mtx);
+                    if (s != 0) {
+                        errExitEN(s, "pthread_mutex_lock");
+                    }
+                    disconnect_roach(i);
+
+                    s = pthread_mutex_unlock(&mtx);
+                    if (s != 0) {
+                        errExitEN(s, "pthread_mutex_unlock");
+                    }
+                }
+            }
+        }
+
+        for (i = 0; i < MAX_WASPS_PER_CLIENT; i++) {
+            if (client_wasps[i].valid) {
+                inactivity_time = now - client_wasps[i].previous_interaction;
+                if (inactivity_time > TIMEOUT_THRESHOLD) {
+                    s = pthread_mutex_lock(&mtx);
+                    if (s != 0) {
+                        errExitEN(s, "pthread_mutex_lock");
+                    }
+                    disconnect_wasp(i);
+                    s = pthread_mutex_unlock(&mtx);
+                    if (s != 0) {
+                        errExitEN(s, "pthread_mutex_unlock");
+                    }
+                }
+            }
+        }
+
+        for (i = 0; i < MAX_LIZARDS; i++) {
+            if (client_lizards[i].valid) {
+                inactivity_time = now - client_lizards[i].previous_interaction;
+                // mvwprintw(debug_win, 2, 1, "prev_iteraction: %ld", client_lizards[i].previous_interaction);
+                // wrefresh(debug_win);
+                // mvwprintw(debug_win, 3, 1, "inactive_time: %ld", inactivity_time);
+                // wrefresh(debug_win);
+
+                if (inactivity_time > TIMEOUT_THRESHOLD) {
+                    s = pthread_mutex_lock(&mtx);
+                    if (s != 0) {
+                        errExitEN(s, "pthread_mutex_lock");
+                    }
+                    disconnect_lizard(i);
+                    s = pthread_mutex_unlock(&mtx);
+                    if (s != 0) {
+                        errExitEN(s, "pthread_mutex_unlock");
+                    }
+                }
+            }
+        }
 
         
-//     }
-//     return 0;
-// }
+    }
+    return 0;
+}
 
 
-bool disconnect_wasp(int index, RemoteChar *m) {
+bool disconnect_wasp(int index) {
     int element_type, pos_x_wasps, pos_y_wasps, index_client, index_bot;
     char ch = ' ';
     if (index != -1) {
-        for (int i = 0; i < m->nchars; i++) {
+        for (int i = 0; i < client_wasps[index].nchars; i++) {
             if (client_wasps[index].active[i] == true) {
                 /* For each active wasp, compute its new position */
                 pos_x_wasps = client_wasps[index].char_data[i].pos_x;
@@ -671,18 +729,18 @@ bool disconnect_wasp(int index, RemoteChar *m) {
         /* Inactivate wasp, and decrement number of wasps */
         client_wasps[index].valid = false;
         n_clients_wasps--;
-        total_wasps -= m->nchars;
+        total_wasps -= client_wasps[index].nchars;
         return true;
 
     }
     return false;
 }
 
-bool disconnect_roach(int index, RemoteChar *m) {
+bool disconnect_roach(int index) {
     int element_type, pos_x_roaches, pos_y_roaches, index_client, index_bot;
     char ch = ' ';
     if (index != -1) {
-        for (int i = 0; i < m->nchars; i++) {
+        for (int i = 0; i < client_roaches[index].nchars; i++) {
             if (client_roaches[index].active[i] == true) {
                 /* For each active roach, compute its new position */
                 pos_x_roaches = client_roaches[index].char_data[i].pos_x;
@@ -702,13 +760,13 @@ bool disconnect_roach(int index, RemoteChar *m) {
         /* Inactivate roach, and decrement number of roaches */
         client_roaches[index].valid = false;
         n_clients_roaches--;
-        total_roaches -= m->nchars;
+        total_roaches -= client_roaches[index].nchars;
         return true;
     }
     return false;
 }
 
-bool disconnect_lizard(int index, RemoteChar *m) {
+bool disconnect_lizard(int index) {
     int element_type, pos_x_lizards, pos_y_lizards, index_client, index_bot;
     char ch = ' ';
     if (index != -1) {
@@ -765,6 +823,13 @@ int main(int argc, char *argv[]) {
     total_roaches = 0; 
     total_lizards = 0;
     total_wasps = 0;
+
+    s = pthread_mutex_init(&mtx, NULL);
+    if (s != 0) {
+        errExitEN(s, "pthread_mutex_init");
+    }
+    
+    
     
     /* Check if the correct number of arguments is provided */
     if (argc != 3) {
@@ -916,14 +981,15 @@ int main(int argc, char *argv[]) {
         client_wasps[i].valid = false;
     }
 
-    // pthread_t thread_id;
-    // pthread_create(&thread_id, NULL, thread_function);
+    pthread_t thread_id;
+    pthread_create(&thread_id, NULL, thread_function, NULL);
 
     while (1) {
+        s = pthread_mutex_lock(&mtx);
+        if (s != 0) {
+            errExitEN(s, "pthread_mutex_lock");
+        }
         
-        /* Deal with ressurection of dead roaches (after respawn time) */
-        ressurect_roaches();
-
         /* Receive client message */ 
         m = zmq_read_RemoteChar(responder);
 
@@ -1318,7 +1384,7 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            success = disconnect_lizard(index_client_lizards_id, m);
+            success = disconnect_lizard(index_client_lizards_id);
 
             if (!success) {
                 /* Send successful response to client */
@@ -1347,7 +1413,7 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            success = disconnect_roach(index_client_roaches_id, m);
+            success = disconnect_roach(index_client_roaches_id);
 
             if (!success) {
                 /* Send successful response to client */
@@ -1552,7 +1618,7 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            success = disconnect_wasp(index_client_wasps_id, m);
+            success = disconnect_wasp(index_client_wasps_id);
 
             if (success) {
                 /* Send successful response to client */
@@ -1573,7 +1639,20 @@ int main(int argc, char *argv[]) {
 
         /* Display lizards stats: name and score */
         display_stats();
+
+        s = pthread_mutex_unlock(&mtx);
+        if (s != 0) {
+            errExitEN(s, "pthread_mutex_unlock");
+        }
     }
+
+
+    s = pthread_mutex_destroy(&mtx);
+    if (s != 0) {
+        errExitEN(s, "pthread_mutexattr_destroy");
+    }
+
+
 
     free_exit();
 	return 0;

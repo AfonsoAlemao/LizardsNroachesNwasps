@@ -134,8 +134,6 @@ void *thread_function(void *arg) {
     char ch;
     msg msg_subscriber;
 
-    int k = 0;
-
     while((*end_program2) == 0) {
         /* Receives message from publisher if the subscriber password matches the topic published */
         type = s_recv (subscriber);
@@ -212,6 +210,10 @@ void *thread_function(void *arg) {
                         wrefresh(stats_win);
                     }
                     i++;
+                }
+                else {
+                    mvwprintw(stats_win, i, 0, "\t\t\t\t\t\t\t");
+                    wrefresh(stats_win);
                 }
             }
         }

@@ -1,5 +1,5 @@
 import zmq
-import lizards_pb2  # Import the generated protobuf module
+import lizards_pb2
 import random
 import time
 
@@ -8,9 +8,9 @@ def main(server_address, port):
     requester = context.socket(zmq.REQ)
     requester.connect(f"tcp://{server_address}:{port}")
 
-    # Generate a unique ID based on the address and port
+    # Generate a unique id based on the address and port
     id_string = f"{server_address}:{port}"
-    id_int = hash(id_string) & 0x7FFFFFFF  # Simple hash function for ID, ensuring it fits within int32 range
+    id_int = hash(id_string) & 0x7FFFFFFF  # hash function for id
 
     nwasps = int(input("How many wasps (1 to 10)? "))
     while nwasps < 1 or nwasps > 10:
@@ -19,12 +19,12 @@ def main(server_address, port):
 
     # Create a RemoteChar message for connection
     m = lizards_pb2.RemoteChar()
-    m.msg_type = 6  # Connection message for wasps
+    m.msg_type = 6
     m.id = id_int
     m.nchars = nwasps
 
     for _ in range(m.nchars):
-        m.ch += '#'  # Assign '#' to each wasp
+        m.ch += '#'
         m.direction.append(random.choice(list(lizards_pb2.Direction.values())))
 
     # Send connection message
@@ -38,8 +38,8 @@ def main(server_address, port):
         return
 
     while True:
-        time.sleep(random.uniform(0, 1))  # Random delay up to 1 second
-        m.msg_type = 7  # Movement message for wasps
+        time.sleep(random.uniform(0, 1))
+        m.msg_type = 7
 
         # Update directions randomly
         m.direction[:] = [random.choice(list(lizards_pb2.Direction.values())) for _ in range(m.nchars)]

@@ -253,16 +253,7 @@ void search_and_destroy_roaches(list_element *head, int index_client) {
     return;
 }
 
-/* Update lizards information in the message to be published to the display-app */
-void update_lizards() {
-    for (int i = 0; i < MAX_LIZARDS; i++) {
-        msg_publisher.lizards[i].valid = client_lizards[i].valid;
-        msg_publisher.lizards[i].alive = client_lizards[i].alive;
-        msg_publisher.lizards[i].score = client_lizards[i].score;
-        msg_publisher.lizards[i].char_data.ch = client_lizards[i].char_data.ch;
-    }
-    return;
-}
+
 
 /* Deal with the display in field of an element in a new position */
 list_element *display_in_field(char ch, int x, int y, int index_client, 
@@ -330,27 +321,18 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
         // waddch(my_win, ch | A_BOLD);
         // wrefresh(my_win);
 
-        s_publish = pthread_mutex_lock(&mtx_publish);
-        if (s_publish != 0) {
-            errExitEN(s_publish, "pthread_mutex_lock");
-        }
+        // s_publish = pthread_mutex_lock(&mtx_publish);
+        // if (s_publish != 0) {
+        //     errExitEN(s_publish, "pthread_mutex_lock");
+        // }
         /* Publish message to the subscribers regarding the previous display update */
 
         msg_publisher.field[x][y] = ch;
-        msg_publisher.x_upd = x;
-        msg_publisher.y_upd = y;
         
-        update_lizards();
-
-        send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
-        assert(send1 != -1);
-        send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
-        assert(send2 != -1);
-
-        s_publish = pthread_mutex_unlock(&mtx_publish);
-        if (s_publish != 0) {
-            errExitEN(s_publish, "pthread_mutex_unlock");
-        }
+        // s_publish = pthread_mutex_unlock(&mtx_publish);
+        // if (s_publish != 0) {
+        //     errExitEN(s_publish, "pthread_mutex_unlock");
+        // }
 
         
     }
@@ -1074,9 +1056,29 @@ void *thread_function_display(void *arg) {
                 if (ch != field_real[i][j]) {
                     wmove(my_win, i, j);
                     waddch(my_win, ch | A_BOLD);
-                    wrefresh(my_win); 
+                    wrefresh(my_win);
                     field_real[i][j] = ch;
                     display_stats();
+
+                    msg_publisher.x_upd = i;
+                    msg_publisher.y_upd = j;
+                    for (int i = 0; i < MAX_LIZARDS; i++) {
+                        msg_publisher.lizards[i] = client_lizards[i].score;
+                        msg_publisher.lizard_valid[i] = client_lizards[i].valid;
+                        msg_publisher.ch[i] = client_lizards[i].char_data.ch;
+                        msg_publisher.lizard_alive[i] = client_lizards[i].alive;
+                    }
+
+                    // mvwprintw(debug_win, 0, 0, "%lf, %lf, %lf, %lf, %d, %d", msg_publisher.lizards[0], msg_publisher.lizards[1]
+                    // , msg_publisher.lizards[2], msg_publisher.lizards[3], msg_publisher.x_upd, msg_publisher.y_upd);
+                    // wrefresh(debug_win);
+                    // mvwprintw(debug_win, 1, 0, "%d, %d", msg_publisher.x_upd, msg_publisher.y_upd);
+                    // wrefresh(debug_win);
+                            
+                    int send1 = zmq_send(publisher, password, strlen(password), ZMQ_SNDMORE);
+                    assert(send1 != -1);
+                    int send2 = zmq_send(publisher, &msg_publisher, sizeof(msg), 0);  
+                    assert(send2 != -1);
                 }
             }
         }

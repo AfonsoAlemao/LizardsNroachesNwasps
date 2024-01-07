@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 #define WINDOW_SIZE 20
-#define MAX_LIZARDS 2
+#define MAX_LIZARDS 4
 #define MAX_ROACHES_PER_CLIENT 10
 #define MAX_WASPS_PER_CLIENT 10
 #define TAIL_SIZE 5
@@ -67,7 +67,10 @@ typedef struct msg
     int x_upd;
     int y_upd;
     char field[WINDOW_SIZE][WINDOW_SIZE];
-    pos_lizards lizards[MAX_LIZARDS];
+    char ch[MAX_LIZARDS];
+    double lizards[MAX_LIZARDS];
+    bool lizard_valid[MAX_LIZARDS];
+    bool lizard_alive[MAX_LIZARDS];
 }msg;
 
 #endif

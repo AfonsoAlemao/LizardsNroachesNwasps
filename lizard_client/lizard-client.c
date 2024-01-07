@@ -27,8 +27,6 @@ char *password;
 void *context;
 void *subscriber;
 
-
-
 int zmq_read_OkMessage(void * requester){
     zmq_msg_t msg_raw;
     zmq_msg_init (&msg_raw);
@@ -83,7 +81,7 @@ void *free_safe_d (void *aux) {
 }
 
 /* Display each player (lizard) name and score */
-void display_stats(pos_lizards *client_lizards) {
+void display_stats(double **client_lizards) {
     int i = 0;
 
     for (int j = 0; j < MAX_LIZARDS; j++) {
@@ -91,13 +89,13 @@ void display_stats(pos_lizards *client_lizards) {
         // wrefresh(debug_win);
         // mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
         // wrefresh(stats_win);
-        if (client_lizards[j].valid) {
-            if (client_lizards[j].alive) {
-                mvwprintw(stats_win, i, 1, "Player %c: Score = %lf", client_lizards[j].char_data.ch, client_lizards[j].score);
+        if (client_lizards[j][1] != 0) {
+            if (client_lizards[j][0] >= 0) {
+                mvwprintw(stats_win, i, 0, "Player %c: Score = %lf", (char) j + 'a', client_lizards[j][0]);
                 wrefresh(stats_win);
             }
             else {
-                mvwprintw(stats_win, i, 1, "Player %c: Lost!\t\t\t\t", client_lizards[j].char_data.ch);
+                mvwprintw(stats_win, i, 0, "Player %c: Lost!\t\t\t\t", (char) j + 'a');
                 wrefresh(stats_win);
             }
             i++;
@@ -130,7 +128,7 @@ void free_exit_l() {
 void *thread_function(void *arg) {
     char *type;
     size_t rcv;
-    int i, j, new = 0;
+    int i = 0, j, new = 0;
     int *end_program2 = (int *) arg;
     
     char ch;
@@ -156,11 +154,19 @@ void *thread_function(void *arg) {
             printf("Wrong password\n");
             endwin(); /* End curses mode */
             free_exit_l();
-
             exit(0);
         }
         rcv = zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
         assert(rcv != -1);
+
+        
+        // mvwprintw(debug_win, 1, 0, "%f, %d", msg_subscriber.lizards[1].score, k);
+        // wrefresh(debug_win);
+        // mvwprintw(debug_win, 2, 0, "%d, %d", (int) msg_subscriber.lizards[0].valid, k);
+        // wrefresh(debug_win);
+        // mvwprintw(debug_win, 3, 0, "%d, %d", (int) msg_subscriber.lizards[1].valid, k);
+        // wrefresh(debug_win);
+        
 
         /* When display-app receives data for the first time, it must display 
         the whole field game and update the lizard stats */
@@ -186,15 +192,29 @@ void *thread_function(void *arg) {
                 waddch(my_win, ch | A_BOLD);
                 wrefresh(my_win);
             }
-            display_stats(msg_subscriber.lizards);
+            
+            
+            i = 0;
+            for (int j = 0; j < MAX_LIZARDS; j++) {
+                // mvwprintw(debug_win, j, 0, "%lf", client_lizards[j].score);
+                // wrefresh(debug_win);
+                // mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
+                // wrefresh(stats_win);
+                
+
+                if (msg_subscriber.lizard_valid[j]) {
+                    if (msg_subscriber.lizard_alive[j]) {
+                        mvwprintw(stats_win, i, 0, "Player %c: Score = %lf", msg_subscriber.ch[j], msg_subscriber.lizards[j]);
+                        wrefresh(stats_win);
+                    }
+                    else {
+                        mvwprintw(stats_win, i, 0, "Player %c: Lost!\t\t\t\t", (char) j + 'a');
+                        wrefresh(stats_win);
+                    }
+                    i++;
+                }
+            }
         }
-
-
-        mvwprintw(debug_win, 0, 0, "%f, %d", msg_subscriber.lizards[0].score, k);
-        wrefresh(debug_win);
-        mvwprintw(debug_win, 1, 0, "%f, %d", msg_subscriber.lizards[1].score, k);
-        wrefresh(debug_win);
-        k++;
         free_safe_d(type);
     }
     return 0;

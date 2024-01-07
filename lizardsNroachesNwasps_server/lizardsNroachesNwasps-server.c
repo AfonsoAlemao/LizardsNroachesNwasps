@@ -383,7 +383,7 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client) {
 
     case RIGHT:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
-            if (y - kk > 1) {
+            if (y - kk > 0) {
                 field_aux = display_in_field(display, x, y - kk, index_client, 
                     index_bot, element_type, field[x][y - kk]);
 
@@ -403,7 +403,7 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client) {
 
     case DOWN:
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
-            if (x - kk > 1) {
+            if (x - kk > 0) {
                 field_aux = display_in_field(display, x - kk, y, index_client, 
                     index_bot, element_type, field[x - kk][y]);
 

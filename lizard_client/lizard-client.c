@@ -380,11 +380,11 @@ int main(int argc, char *argv[]) {
                 zmq_send_RemoteChar(requester, &m);
                 my_score = zmq_read_Myscore(requester);
 
-                if (my_score == -1) { /* The request was not fullfilled */
+                if (my_score == -1000) { /* The request was not fullfilled */
                     // mvprintw(4, 0, "Connection failed!\t\t\t\n");
                     free_exit_l();
                     exit(0);
-                }              
+                }
             }
             // refresh(); /* Print it on to the real screen */
         } while(key != 27 && key != 'Q' && key != 'q');

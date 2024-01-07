@@ -85,10 +85,6 @@ void display_stats(double **client_lizards) {
     int i = 0;
 
     for (int j = 0; j < MAX_LIZARDS; j++) {
-        // mvwprintw(debug_win, j, 0, "%lf", client_lizards[j].score);
-        // wrefresh(debug_win);
-        // mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
-        // wrefresh(stats_win);
         if (client_lizards[j][1] != 0) {
             if (client_lizards[j][0] >= 0) {
                 mvwprintw(stats_win, i, 0, "Player %c: Score = %lf", (char) j + 'a', client_lizards[j][0]);
@@ -140,14 +136,6 @@ void *thread_function(void *arg) {
         if (type == NULL) {
             continue;
         }
-        
-        // mvwprintw(debug_win, 6, 0, "End program: %d, thread function\n", (*end_program2));
-        // wrefresh(debug_win);
-
-        // mvprintw(5, 0, "Stuck\n");
-        
-        // mvwprintw(debug_win, 0, 0, "type: %s,\t\tpass: %s\n", type, password);
-        // wrefresh(debug_win);
         if (strcmp(type, password) != 0) {
             printf("Wrong password\n");
             endwin(); /* End curses mode */
@@ -155,16 +143,7 @@ void *thread_function(void *arg) {
             exit(0);
         }
         rcv = zmq_recv (subscriber, &msg_subscriber, sizeof(msg), 0);
-        assert(rcv != -1);
-
-        
-        // mvwprintw(debug_win, 1, 0, "%f, %d", msg_subscriber.lizards[1].score, k);
-        // wrefresh(debug_win);
-        // mvwprintw(debug_win, 2, 0, "%d, %d", (int) msg_subscriber.lizards[0].valid, k);
-        // wrefresh(debug_win);
-        // mvwprintw(debug_win, 3, 0, "%d, %d", (int) msg_subscriber.lizards[1].valid, k);
-        // wrefresh(debug_win);
-        
+        assert(rcv != -1);        
 
         /* When display-app receives data for the first time, it must display 
         the whole field game and update the lizard stats */
@@ -194,12 +173,6 @@ void *thread_function(void *arg) {
             
             i = 0;
             for (int j = 0; j < MAX_LIZARDS; j++) {
-                // mvwprintw(debug_win, j, 0, "%lf", client_lizards[j].score);
-                // wrefresh(debug_win);
-                // mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
-                // wrefresh(stats_win);
-                
-
                 if (msg_subscriber.lizard_valid[j]) {
                     if (msg_subscriber.lizard_alive[j]) {
                         mvwprintw(stats_win, i, 0, "Player %c: Score = %lf", msg_subscriber.ch[j], msg_subscriber.lizards[j]);
@@ -339,10 +312,7 @@ int main(int argc, char *argv[]) {
 
     /* Connection message */
     zmq_send_RemoteChar(requester, &m);
-    // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
-    // assert(send != -1);
-    // recv = zmq_recv (requester, &ok, sizeof(int), 0);
-    // assert(recv != -1);
+
     ok = zmq_read_OkMessage(requester);
     /* From server response check connection success */
     char_ok = (char) ok;
@@ -367,7 +337,6 @@ int main(int argc, char *argv[]) {
 
     if (!end_program) {
         do {
-
             /* Get next movement from user */
             key = getch();
             // n++;
@@ -408,40 +377,19 @@ int main(int argc, char *argv[]) {
             }
             else if (key != 'x') {
                 /* Send movement to server */
-
-                // mvwprintw(debug_win, 0, 0, "type: %d,\t\tch: %s,\t\tnchars: %d", m.msg_type, m.ch, m.nchars);
-                // wrefresh(debug_win);
-
                 zmq_send_RemoteChar(requester, &m);
-                // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
-                // assert(send != -1);
-                // recv = zmq_recv (requester, &my_score, sizeof(int), 0);
-                // assert(recv != -1);
                 my_score = zmq_read_Myscore(requester);
 
                 if (my_score == -1) { /* The request was not fullfilled */
                     // mvprintw(4, 0, "Connection failed!\t\t\t\n");
                     free_exit_l();
                     exit(0);
-                }
-                // else if (my_score == -1000) { /* The request was not fullfilled */
-                //     mvprintw(4, 0, "You have lost!\t\t\t\n");
-                //     free_exit_l();
-                //     exit(0);
-                // }
-                // else {
-                //     /* From server response, update user score */
-                //     mvprintw(4, 0, "Your score is %lf", my_score);
-                // }
-
-                
+                }              
             }
             // refresh(); /* Print it on to the real screen */
         } while(key != 27 && key != 'Q' && key != 'q');
 
     }
-    // mvwprintw(debug_win, 7, 0, "End program: %d, thread %ld\n", (end_program), thread_id);
-    // wrefresh(debug_win);  
 
     pthread_join(thread_id, NULL);
 

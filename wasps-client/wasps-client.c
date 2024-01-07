@@ -150,10 +150,6 @@ int main(int argc, char *argv[]) {
 
     /* Connection message */
     zmq_send_RemoteChar(requester, &m);
-    // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
-    // assert(send != -1);
-    // recv = zmq_recv (requester, &ok, sizeof(int), 0);
-    // assert(recv != -1);
     ok = zmq_read_OkMessage(requester);
 
     /* From server response check connection success */
@@ -188,10 +184,6 @@ int main(int argc, char *argv[]) {
 
         /* Send the movement message */
         zmq_send_RemoteChar(requester, &m);
-        // send = zmq_send (requester, &m, sizeof(remote_char_t), 0);
-        // assert(send != -1);
-        // recv = zmq_recv (requester, &ok, sizeof(int), 0);
-        // assert(recv != -1);
         ok = zmq_read_OkMessage(requester);
     
         /* Check if wasp movement request failed */

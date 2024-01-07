@@ -5,7 +5,7 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define WINDOW_SIZE 20 
+#define WINDOW_SIZE 20
 #define MAX_LIZARDS 4
 #define MAX_ROACHES_PER_CLIENT 10
 #define TAIL_SIZE 5

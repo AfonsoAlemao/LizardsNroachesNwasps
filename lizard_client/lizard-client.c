@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
 
     /* Check if the correct number of arguments is provided */
     if (argc != 4) {
-        fprintf(stderr, "Usage: %s <client-address> <client-port_client> <display-port_client>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <client-address> <client-lizard-port> <display-port>\n", argv[0]);
         return 1;
     }
 

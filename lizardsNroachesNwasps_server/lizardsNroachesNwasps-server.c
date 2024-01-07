@@ -61,7 +61,7 @@ void *free_safe (void *aux);
 void loser_lizard(int index);
 list_element ***allocate3DArray();
 void free3DArray(list_element ***table);
-void ressurect_roaches();
+void resurrect_roaches();
 void free_exit();
 bool disconnect_wasp(int index);
 bool disconnect_roach(int index);
@@ -574,12 +574,12 @@ void free3DArray(list_element ***table) {
     table = free_safe(table);
 }
 
-/* Respawn time after a roach was killed, ressurect it */
-void ressurect_roaches() {
+/* Respawn time after a roach was killed, resurrect it */
+void resurrect_roaches() {
     int64_t end_time, inactive_time;
 
     /* Verify, in the ordered (descending by death_time) dead roaches fifo,
-    which can be ressurected */
+    which can be resurrected */
     while (roaches_killed != NULL) {
         end_time = s_clock();
         assert(end_time >= 0);
@@ -749,7 +749,7 @@ void loser_lizard(int index) {
     }
 }
 
-RemoteChar  * zmq_read_RemoteChar(void * responder_3){
+RemoteChar *zmq_read_RemoteChar(void * responder_3){
     zmq_msg_t msg_raw;
     zmq_msg_init (&msg_raw);
 
@@ -986,14 +986,14 @@ bool disconnect_lizard(int index) {
     return false;
 }
 
-void *thread_function(void *arg) {
+void *resurrect_and_timeouts(void *arg) {
     int64_t now;
     int64_t inactivity_time;
     int i = 0;
 
     while(1) {
-        /* Deal with ressurection of dead roaches (after respawn time) */
-        ressurect_roaches();
+        /* Deal with resurrection of dead roaches (after respawn time) */
+        resurrect_roaches();
         
         now = s_clock();
         assert(now >= 0);
@@ -1025,7 +1025,7 @@ void *thread_function(void *arg) {
     return 0;
 }
 
-void *thread_function_display(void *arg) {
+void *display_field(void *arg) {
     int field_real[WINDOW_SIZE][WINDOW_SIZE];
 
     for (int i = 1; i < WINDOW_SIZE-1; i++) {
@@ -1069,7 +1069,7 @@ void *thread_function_display(void *arg) {
     }
 }
 
-void *thread_function_msg_wasp_roaches(void *arg) {
+void *msg_wasp_roaches(void *arg) {
     RemoteChar *m;
     // bool success;
     int ok = 1, index_of_position_to_insert = -1;
@@ -1590,7 +1590,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
     }
 }
 
-void *thread_function_msg_lizards(void *arg) {
+void *msg_lizards(void *arg) {
     RemoteChar *m;
     bool success;
     int ok = 1;
@@ -2179,16 +2179,16 @@ int main(int argc, char *argv[]) {
 
     for (int worker_nbr = 0; worker_nbr < N_THREADS - 1; worker_nbr++) {
         if(worker_nbr == 0) {
-            pthread_create(&thread_id[worker_nbr], NULL, thread_function, NULL);
+            pthread_create(&thread_id[worker_nbr], NULL, resurrect_and_timeouts, NULL);
         }
         else if(worker_nbr == 1) {
-            pthread_create(&thread_id[worker_nbr], NULL, thread_function_msg_wasp_roaches, NULL);
+            pthread_create(&thread_id[worker_nbr], NULL, msg_wasp_roaches, NULL);
         }
         else if(worker_nbr == 2) {
-            pthread_create(&thread_id[worker_nbr], NULL, thread_function_display, NULL);
+            pthread_create(&thread_id[worker_nbr], NULL, display_field, NULL);
         }
         else {
-            pthread_create(&thread_id[worker_nbr], NULL, thread_function_msg_lizards, NULL);
+            pthread_create(&thread_id[worker_nbr], NULL, msg_lizards, NULL);
         }
     }
 

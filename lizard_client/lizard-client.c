@@ -121,7 +121,7 @@ void free_exit_l() {
     assert(rc == 0);
 }
 
-void *thread_function(void *arg) {
+void *display_app(void *arg) {
     char *type;
     size_t rcv;
     int i = 0, j, new = 0;
@@ -333,7 +333,7 @@ int main(int argc, char *argv[]) {
     int end_program = 0;
     pthread_t thread_id;
 
-    pthread_create(&thread_id, NULL, thread_function, &end_program);
+    pthread_create(&thread_id, NULL, display_app, &end_program);
 
     if (!end_program) {
         do {

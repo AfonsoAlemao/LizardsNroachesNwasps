@@ -40,6 +40,7 @@ typedef struct pos_roachesNwasps
     bool active[10];
     bool valid;
     int64_t previous_interaction;
+    bool disconnect;
 } pos_roachesNwasps;
 
 typedef struct pos_lizards

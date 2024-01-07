@@ -95,14 +95,13 @@ void display_stats(pos_lizards *client_lizards) {
                 wrefresh(stats_win);
             }
             else {
-                mvwprintw(stats_win, i, 1, "Player %c: Lost!", client_lizards[j].char_data.ch);
+                mvwprintw(stats_win, i, 1, "Player %c: Lost!\t\t\t\t", client_lizards[j].char_data.ch);
                 wrefresh(stats_win);
             }
             i++;
         }
     }
 }
-
 
 /* Convert each string in a unique ID */
 uint32_t hash_function(const char *str) {
@@ -125,7 +124,6 @@ void free_exit_l() {
     int rc = zmq_ctx_destroy (context);
     assert(rc == 0);
 }
-
 
 void *thread_function(void *arg) {
     char *type;
@@ -174,6 +172,7 @@ void *thread_function(void *arg) {
                     }
                 }
             }
+            mvwprintw(debug_win, 0, 0, "%f", msg_subscriber.lizards[1].score);
             display_stats(msg_subscriber.lizards);
         } else {
             /* Then, each time the field is updated, the display-app is updated accordingly */
@@ -193,7 +192,7 @@ void *thread_function(void *arg) {
 int main(int argc, char *argv[]) {
     char *client_address, full_address_client[60], full_address_display[60];
     char id_string_client[60], id_string_display[60], char_ok;
-    int port_client, port_display, ok = 0, n = 0, disconnect = 0, key, rc;
+    int port_client, port_display, ok = 0, disconnect = 0, key, rc;
     uint32_t id_int;
     RemoteChar m = REMOTE_CHAR__INIT;
     double my_score = 0;
@@ -202,8 +201,6 @@ int main(int argc, char *argv[]) {
     int ch, i = 0;
     struct termios oldt, newt;
     size_t bufsize = 100;
-    
-    
 
     timeout(0); /* Non-blocking getch() */
 
@@ -265,8 +262,6 @@ int main(int argc, char *argv[]) {
 	noecho();			    /* Don't echo() while we do getch */
 
     // mvprintw(2, 0, "You are lizard %c", char_ok);
-    
-    
 
     /* Turn off echoing of characters */
     tcgetattr(STDIN_FILENO, &oldt); /* Get current terminal attributes */
@@ -335,9 +330,7 @@ int main(int argc, char *argv[]) {
     int end_program = 0;
     pthread_t thread_id;
 
-    // mvprintw(3, 0, "1:Sou a thread %ld\n", thread_id);
     pthread_create(&thread_id, NULL, thread_function, &end_program);
-    // mvprintw(4, 0, "2:Sou a thread %ld\n", thread_id);
 
     if (!end_program) {
         do {
@@ -345,8 +338,7 @@ int main(int argc, char *argv[]) {
             /* Get next movement from user */
             key = getch();
             // n++;
-            switch (key)
-            {
+            switch (key) {
             case KEY_LEFT:
                 // mvprintw(0,0,"%d :Left arrow is pressed ", n);
                 m.direction[0] = LEFT;

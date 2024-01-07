@@ -87,6 +87,8 @@ void display_stats(pos_lizards *client_lizards) {
     int i = 0;
 
     for (int j = 0; j < MAX_LIZARDS; j++) {
+        // mvwprintw(debug_win, j, 0, "%lf", client_lizards[j].score);
+        // wrefresh(debug_win);
         // mvwprintw(stats_win, j, 0, "\t\t\t\t\t");
         // wrefresh(stats_win);
         if (client_lizards[j].valid) {
@@ -134,6 +136,8 @@ void *thread_function(void *arg) {
     char ch;
     msg msg_subscriber;
 
+    int k = 0;
+
     while((*end_program2) == 0) {
         /* Receives message from publisher if the subscriber password matches the topic published */
         type = s_recv (subscriber);
@@ -172,9 +176,9 @@ void *thread_function(void *arg) {
                     }
                 }
             }
-            mvwprintw(debug_win, 0, 0, "%f", msg_subscriber.lizards[1].score);
-            display_stats(msg_subscriber.lizards);
-        } else {
+        }
+        else {
+            
             /* Then, each time the field is updated, the display-app is updated accordingly */
             if (msg_subscriber.x_upd != -1 && msg_subscriber.y_upd != -1) {
                 ch = msg_subscriber.field[msg_subscriber.x_upd][msg_subscriber.y_upd];
@@ -184,6 +188,13 @@ void *thread_function(void *arg) {
             }
             display_stats(msg_subscriber.lizards);
         }
+
+
+        mvwprintw(debug_win, 0, 0, "%f, %d", msg_subscriber.lizards[0].score, k);
+        wrefresh(debug_win);
+        mvwprintw(debug_win, 1, 0, "%f, %d", msg_subscriber.lizards[1].score, k);
+        wrefresh(debug_win);
+        k++;
         free_safe_d(type);
     }
     return 0;

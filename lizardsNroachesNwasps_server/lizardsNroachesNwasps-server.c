@@ -54,19 +54,19 @@ void *backend, *frontend;
 void new_position(int* x, int *y, direction_t direction);
 void split_health(list_element *head, int index_client);
 void search_and_destroy_roaches(list_element *head, int index_client);
-list_element *display_in_field(char ch, int x, int y, int index_client, int index_bot, int element_type, list_element *head, void *publisher);
-void tail(direction_t direction, int x, int y, bool delete, int index_client, void *publisher);
+list_element *display_in_field(char ch, int x, int y, int index_client, int index_bot, int element_type, list_element *head);
+void tail(direction_t direction, int x, int y, bool delete, int index_client);
 int check_in_square(list_element *head, int type);
 char check_prioritary_element(list_element *head);
 void *free_safe (void *aux);
-void loser_lizard(int index, void *publisher);
+void loser_lizard(int index);
 list_element ***allocate3DArray();
 void free3DArray(list_element ***table);
 void ressurect_roaches();
 void free_exit();
-bool disconnect_wasp(int index, void *publisher);
-bool disconnect_roach(int index, void *publisher);
-bool disconnect_lizard(int index, void *publisher);
+bool disconnect_wasp(int index);
+bool disconnect_roach(int index);
+bool disconnect_lizard(int index);
 
 void errExitEN(int s, const char *msg) {
     
@@ -140,7 +140,7 @@ void split_health(list_element *head, int index_client) {
     return;
 }
 
-void wasp_attack(list_element *head, void *publisher) {
+void wasp_attack(list_element *head) {
     list_element *current = head;
     list_element *nextNode;
 
@@ -159,7 +159,7 @@ void wasp_attack(list_element *head, void *publisher) {
             }
             
             if (client_lizards[current->data.index_client].score < 0) {
-                loser_lizard(current->data.index_client, publisher);
+                loser_lizard(current->data.index_client);
             }
             break;
         }
@@ -266,7 +266,7 @@ void update_lizards() {
 
 /* Deal with the display in field of an element in a new position */
 list_element *display_in_field(char ch, int x, int y, int index_client, 
-                    int index_bot, int element_type, list_element *head, void *publisher) {
+                    int index_bot, int element_type, list_element *head) {
     square new_data;
     size_t send1, send2;
     bool check;
@@ -358,7 +358,7 @@ list_element *display_in_field(char ch, int x, int y, int index_client,
 }
 
 /* Insert tail in new position of the playing field */
-void tail(direction_t direction, int x, int y, bool delete, int index_client, void * publisher) {
+void tail(direction_t direction, int x, int y, bool delete, int index_client) {
     char display;
     int index_bot = -1;  
     int element_type = 0;
@@ -384,7 +384,7 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client, vo
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (y + kk < WINDOW_SIZE - 1) {          
                 field_aux = display_in_field(display, x, y + kk, index_client, 
-                    index_bot, element_type, field[x][y + kk], publisher);
+                    index_bot, element_type, field[x][y + kk]);
                 
                 s_field = pthread_mutex_lock(&mtx_field);
                 if (s_field != 0) {
@@ -405,7 +405,7 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client, vo
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (y - kk > 1) {
                 field_aux = display_in_field(display, x, y - kk, index_client, 
-                    index_bot, element_type, field[x][y - kk], publisher);
+                    index_bot, element_type, field[x][y - kk]);
 
                 s_field = pthread_mutex_lock(&mtx_field);
                 if (s_field != 0) {
@@ -425,7 +425,7 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client, vo
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (x - kk > 1) {
                 field_aux = display_in_field(display, x - kk, y, index_client, 
-                    index_bot, element_type, field[x - kk][y], publisher);
+                    index_bot, element_type, field[x - kk][y]);
 
                 s_field = pthread_mutex_lock(&mtx_field);
                 if (s_field != 0) {
@@ -446,7 +446,7 @@ void tail(direction_t direction, int x, int y, bool delete, int index_client, vo
         for (int kk = 1; kk <= TAIL_SIZE; kk++) {
             if (x + kk < WINDOW_SIZE - 1) {
                 field_aux = display_in_field(display, x + kk, y, index_client, 
-                    index_bot, element_type, field[x + kk][y], publisher);
+                    index_bot, element_type, field[x + kk][y]);
 
                 s_field = pthread_mutex_lock(&mtx_field);
                 if (s_field != 0) {
@@ -711,7 +711,7 @@ void free_exit() {
     
 }
 
-void loser_lizard(int index, void *publisher) {
+void loser_lizard(int index) {
     int pos_x, pos_y;
     char ch;
     int index_bot, element_type;
@@ -723,14 +723,14 @@ void loser_lizard(int index, void *publisher) {
 
     /* Remove lizard tail from the playing field in the old position */
     tail(client_lizards[index].prevdirection, pos_x, pos_y, 
-        true, index, publisher);
+        true, index);
     
     index_bot = -1;  
     element_type = 1;
 
     /* Remove roach from the playing field in old position */
     field_aux = display_in_field(' ', pos_x, pos_y, index, 
-        index_bot, element_type, field[pos_x][pos_y], publisher);
+        index_bot, element_type, field[pos_x][pos_y]);
     
     s_field = pthread_mutex_lock(&mtx_field);
     if (s_field != 0) {
@@ -761,7 +761,7 @@ void loser_lizard(int index, void *publisher) {
     element_type = 4; // fake lizard head
     
     field_aux = display_in_field(ch, pos_x, pos_y, index, 
-        index_bot, element_type, field[pos_x][pos_y], publisher);
+        index_bot, element_type, field[pos_x][pos_y]);
         
     s_field = pthread_mutex_lock(&mtx_field);
     if (s_field != 0) {
@@ -824,7 +824,7 @@ void zmq_send_MyScore(void * responder_3, double my_score){
 
 }
 
-bool disconnect_wasp(int index, void *publisher) {
+bool disconnect_wasp(int index) {
     int element_type, pos_x_wasps, pos_y_wasps, index_client, index_bot;
     list_element *field_aux;
     
@@ -840,7 +840,7 @@ bool disconnect_wasp(int index, void *publisher) {
                 element_type = 3;
 
                 field_aux = display_in_field(' ', pos_x_wasps, pos_y_wasps, index_client, 
-                    index_bot, element_type, field[pos_x_wasps][pos_y_wasps], publisher);
+                    index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);
                     
                 s_field = pthread_mutex_lock(&mtx_field);
                 if (s_field != 0) {
@@ -877,7 +877,7 @@ bool disconnect_wasp(int index, void *publisher) {
     return false;
 }
 
-bool disconnect_roach(int index, void *publisher) {
+bool disconnect_roach(int index) {
     int element_type, pos_x_roaches, pos_y_roaches, index_client, index_bot;
     list_element *field_aux;
     
@@ -893,7 +893,7 @@ bool disconnect_roach(int index, void *publisher) {
                 element_type = 3;
 
                 field_aux = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
-                    index_bot, element_type, field[pos_x_roaches][pos_y_roaches], publisher);
+                    index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
 
                 s_field = pthread_mutex_lock(&mtx_field);
                 if (s_field != 0) {
@@ -929,7 +929,7 @@ bool disconnect_roach(int index, void *publisher) {
     return false;
 }
 
-bool disconnect_lizard(int index, void *publisher) {
+bool disconnect_lizard(int index) {
     int element_type, pos_x_lizards, pos_y_lizards, index_client, index_bot;
     list_element *field_aux;
 
@@ -941,7 +941,7 @@ bool disconnect_lizard(int index, void *publisher) {
         if (client_lizards[index].alive) {
             /* Remove lizard tail from the playing field in the old position */
             tail(client_lizards[index].prevdirection, pos_x_lizards, pos_y_lizards, 
-                true, index, publisher);
+                true, index);
         }
 
         index_client = index;
@@ -950,7 +950,7 @@ bool disconnect_lizard(int index, void *publisher) {
 
         if (client_lizards[index].alive) {
             field_aux = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
-                index_bot, element_type, field[pos_x_lizards][pos_y_lizards], publisher);
+                index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
             
             s_field = pthread_mutex_lock(&mtx_field);
             if (s_field != 0) {
@@ -969,7 +969,7 @@ bool disconnect_lizard(int index, void *publisher) {
             element_type = 4;
             
             field_aux = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
-                index_bot, element_type, field[pos_x_lizards][pos_y_lizards], publisher);
+                index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
                 
             s_field = pthread_mutex_lock(&mtx_field);
             if (s_field != 0) {
@@ -1005,9 +1005,8 @@ bool disconnect_lizard(int index, void *publisher) {
 
 void *thread_function(void *arg) {
     int64_t now;
-    // int64_t inactivity_time;
-    // int i = 0;
-    // int rc2;
+    int64_t inactivity_time;
+    int i = 0;
 
     while(1) {
         
@@ -1022,7 +1021,7 @@ void *thread_function(void *arg) {
         //         inactivity_time = now - client_roaches[i].previous_interaction;
         //         if (inactivity_time > TIMEOUT_THRESHOLD) {
 
-        //             disconnect_roach(i, publisher);
+        //             disconnect_roach(i);
         //         }
         //     }
         // }
@@ -1031,7 +1030,7 @@ void *thread_function(void *arg) {
         //     if (client_wasps[i].valid) {
         //         inactivity_time = now - client_wasps[i].previous_interaction;
         //         if (inactivity_time > TIMEOUT_THRESHOLD) {
-        //             disconnect_wasp(i, publisher);
+        //             disconnect_wasp(i);
         //         }
         //     }
         // }
@@ -1046,7 +1045,7 @@ void *thread_function(void *arg) {
 
         //         if (inactivity_time > TIMEOUT_THRESHOLD) {
                     
-        //             disconnect_lizard(i, publisher);
+        //             disconnect_lizard(i);
 
         //         }
         //     }
@@ -1219,7 +1218,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                     element_type = 2;
 
                     field_aux_main = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
-                        index_bot, element_type, field[pos_x_roaches][pos_y_roaches], publisher);
+                        index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
                     /* Insert roach into the playing field */
                     s_field = pthread_mutex_lock(&mtx_field);
                     if (s_field != 0) {
@@ -1305,7 +1304,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                                 element_type = 2;
 
                                 field_aux_main = display_in_field(' ', pos_x_roaches, pos_y_roaches, index_client, 
-                                    index_bot, element_type, field[pos_x_roaches][pos_y_roaches], publisher);
+                                    index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
                                 /* Remove roach from the playing field in old position */
                                 s_field = pthread_mutex_lock(&mtx_field);
                                 if (s_field != 0) {
@@ -1336,7 +1335,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                                 }
 
                                 field_aux_main = display_in_field(ch, pos_x_roaches, pos_y_roaches, index_client, 
-                                    index_bot, element_type, field[pos_x_roaches][pos_y_roaches], publisher);
+                                    index_bot, element_type, field[pos_x_roaches][pos_y_roaches]);
 
                                 /* Insert roach into the playing field in new position */
                                 
@@ -1376,7 +1375,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                 }
             }
 
-            success = disconnect_roach(index_client_roaches_id, publisher);
+            success = disconnect_roach(index_client_roaches_id);
 
             if (!success) {
                 /* Send successful response to client */
@@ -1501,7 +1500,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                     element_type = 3;
 
                     field_aux_main = display_in_field(ch, pos_x_wasps, pos_y_wasps, index_client, 
-                        index_bot, element_type, field[pos_x_wasps][pos_y_wasps], publisher);
+                        index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);
                         
                     /* Insert wasp into the playing field */
                     
@@ -1592,7 +1591,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                                 element_type = 3;
 
                                 field_aux_main = display_in_field(' ', pos_x_wasps, pos_y_wasps, index_client, 
-                                    index_bot, element_type, field[pos_x_wasps][pos_y_wasps], publisher);
+                                    index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);
 
                                 /* Remove wasp from the playing field in old position */
                                 
@@ -1626,7 +1625,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                                 }
 
                                 field_aux_main = display_in_field(ch, pos_x_wasps, pos_y_wasps, index_client, 
-                                    index_bot, element_type, field[pos_x_wasps][pos_y_wasps], publisher);
+                                    index_bot, element_type, field[pos_x_wasps][pos_y_wasps]);
                                 /* Insert wasp into the playing field in new position */
                                 
                                 s_field = pthread_mutex_lock(&mtx_field);
@@ -1642,7 +1641,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                                 }
                             }
                             else if (check == 1) {
-                                wasp_attack(field[pos_x_wasps_aux][pos_y_wasps_aux], publisher);
+                                wasp_attack(field[pos_x_wasps_aux][pos_y_wasps_aux]);
                             }
                         }
                     }
@@ -1668,7 +1667,7 @@ void *thread_function_msg_wasp_roaches(void *arg) {
                 }
             }
 
-            success = disconnect_wasp(index_client_wasps_id, publisher);
+            success = disconnect_wasp(index_client_wasps_id);
 
             if (success) {
                 /* Send successful response to client */
@@ -1841,7 +1840,7 @@ void *thread_function_msg_lizards(void *arg) {
                 
                 /* Insert lizard tail into the playing field */
                 tail(m->direction[0], pos_x_lizards, pos_y_lizards, 
-                    false, index_of_position_to_insert, publisher);
+                    false, index_of_position_to_insert);
 
                 s_lizards = pthread_mutex_lock(&mtx_lizards);
                 if (s_lizards != 0) {
@@ -1860,7 +1859,7 @@ void *thread_function_msg_lizards(void *arg) {
                 element_type = 1;
 
                 field_aux_main = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
-                    index_bot, element_type, field[pos_x_lizards][pos_y_lizards], publisher);
+                    index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
 
                 /* Insert lizard into the playing field */
                 s_field = pthread_mutex_lock(&mtx_field);
@@ -1938,18 +1937,18 @@ void *thread_function_msg_lizards(void *arg) {
 
                         /* Remove lizard tail from the playing field in the old position */
                         tail(client_lizards[index_client_lizards_id].prevdirection, pos_x_lizards, pos_y_lizards, 
-                            true, index_client_lizards_id, publisher);
+                            true, index_client_lizards_id);
 
                         /* Insert lizard tail into the playing field in new position */
                         tail(m->direction[0], pos_x_lizards_aux, pos_y_lizards_aux, false, 
-                            index_client_lizards_id, publisher);
+                            index_client_lizards_id);
 
                         index_client = index_client_lizards_id;
                         index_bot = -1;  
                         element_type = 1;              
 
                         field_aux_main = display_in_field(' ', pos_x_lizards, pos_y_lizards, index_client, 
-                            index_bot, element_type, field[pos_x_lizards][pos_y_lizards], publisher);
+                            index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
 
                         /* Remove lizard from the playing field in old position */
                         
@@ -1982,7 +1981,7 @@ void *thread_function_msg_lizards(void *arg) {
                         }
 
                         field_aux_main = display_in_field(ch, pos_x_lizards, pos_y_lizards, index_client, 
-                            index_bot, element_type, field[pos_x_lizards][pos_y_lizards], publisher);
+                            index_bot, element_type, field[pos_x_lizards][pos_y_lizards]);
 
                         /* Insert lizard into the playing field in new position */
                         
@@ -2015,7 +2014,7 @@ void *thread_function_msg_lizards(void *arg) {
                             /* Update lizard tail to '*' and flag the game as finished */
                             end_game = 1;
                             tail(m->direction[0], pos_x_lizards, pos_y_lizards, false, 
-                                index_client_lizards_id, publisher);
+                                index_client_lizards_id);
 
                             end_game = 2;
                         }
@@ -2039,7 +2038,7 @@ void *thread_function_msg_lizards(void *arg) {
                         }
 
                         if (client_lizards[index_client_lizards_id].score < 0) {
-                            loser_lizard(index_client_lizards_id, publisher);
+                            loser_lizard(index_client_lizards_id);
                         }
                     }
                     
@@ -2068,7 +2067,7 @@ void *thread_function_msg_lizards(void *arg) {
                 }
             }
 
-            success = disconnect_lizard(index_client_lizards_id, publisher);
+            success = disconnect_lizard(index_client_lizards_id);
 
             if (!success) {
                 /* Send successful response to client */
@@ -2316,7 +2315,6 @@ int main(int argc, char *argv[]) {
     // pthread_create(&thread_id[2], NULL, thread_function_msg_lizards, NULL);
     // pthread_create(&thread_id[3], NULL, thread_function_msg_lizards, NULL);
     // pthread_create(&thread_id[4], NULL, thread_function_display, NULL);
-
 
     for (int worker_nbr = 0; worker_nbr < N_THREADS - 1; worker_nbr++) {
         if(worker_nbr == 0) {

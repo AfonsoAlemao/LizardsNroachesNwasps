@@ -12,7 +12,7 @@
 #define TAIL_SIZE 5
 #define RESPAWN_TIME 5000 /* ms */
 #define POINTS_TO_WIN 50
-#define TIMEOUT_THRESHOLD 2000
+#define TIMEOUT_THRESHOLD 6000
 
 typedef enum direction_t {UP, DOWN, LEFT, RIGHT, NONE} direction_t;
 
